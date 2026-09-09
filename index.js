@@ -77,6 +77,31 @@ function checkBox(map, box) {
     return position
 }
 
+// 用來計算該點是否屬於 player 或 另一個 box
+function isOccupiedByPlayerOrBox(x, y, ignoredBox = null) {
+    return (
+        (player.x === x && player.y === y) ||
+        (box1 !== ignoredBox && box1.x === x && box1.y === y) ||
+        (box2 !== ignoredBox && box2.x === x && box2.y === y)
+    );
+}
+
+// 判斷是否可以移動箱子，傳入箱子以及分別要在 x 軸和 y軸移動幾格
+function moveBoxIfAvailable(box, dx, dy) {
+    const targetX = box.x + dx; // 計算出目標位置的 x
+    const targetY = box.y + dy; // 計算出目標位置的 y
+
+    // 如果在地圖上該目標點不是空的 或者 目標點為 player 或另一個 box 的話回傳 否
+    if (map[targetY][targetX] !== ' ' || isOccupiedByPlayerOrBox(targetX, targetY, box)) {
+        return false;
+    }
+
+    // 移動箱子並回傳 是
+    box.x = targetX;
+    box.y = targetY;
+    return true;
+}
+
 function movePlayer(dx, dy) {
     // 藉由傳入的 dx 和 dy 來定位下一個座標，這樣我們就知道要往哪邊走
     const nextX = player.x + dx; // 下一個 x  
@@ -119,14 +144,14 @@ function movePlayer(dx, dy) {
 
         // 確認這個位置是不是空的，是的話三個都往後一格
         if (map[afterSecondBoxY][afterSecondBoxX] === ' ') {
-            player.x = nextX;
-            player.y = nextY;
+            secondBox.x += dx;
+            secondBox.y += dy;
 
             firstBox.x += dx;
             firstBox.y += dy;
 
-            secondBox.x += dx;
-            secondBox.y += dy;
+            player.x = nextX;
+            player.y = nextY;
         }
 
         return;
@@ -135,11 +160,11 @@ function movePlayer(dx, dy) {
     // 前面只有一個箱子，要確認箱子後面是空的
     if (map[boxNextY][boxNextX] === ' ') {
         // 兩個箱子都往後一格
-        player.x = nextX;
-        player.y = nextY;
-
         firstBox.x = boxNextX;
         firstBox.y = boxNextY;
+
+        player.x = nextX;
+        player.y = nextY;
     }
 }
 
@@ -251,26 +276,26 @@ process.stdin.on('data', (key) => {
     // 如果箱子2在按鈕上，可以推出 box1
     if (box2.y === button.y && box2.x === button.x && !position1.isDeadlock) {
         if (position1.top) {
-            box1.y += 1;
+            moveBoxIfAvailable(box1, 0, 1);
         } else if (position1.bottom) {
-            box1.y -= 1;
+            moveBoxIfAvailable(box1, 0, -1);
         } else if (position1.left) {
-            box1.x += 1;
+            moveBoxIfAvailable(box1, 1, 0);
         } else if (position1.right) {
-            box1.x -= 1;
+            moveBoxIfAvailable(box1, -1, 0);
         }
         render();
     }
-    // 如果箱子1在按鈕上，可以推出 box1
+    // 如果箱子1在按鈕上，可以推出 box2
     if (box1.y === button.y && box1.x === button.x && !position2.isDeadlock) {
         if (position2.top) {
-            box2.y += 1;
+            moveBoxIfAvailable(box2, 0, 1);
         } else if (position2.bottom) {
-            box2.y -= 1;
+            moveBoxIfAvailable(box2, 0, -1);
         } else if (position2.left) {
-            box2.x += 1;
+            moveBoxIfAvailable(box2, 1, 0);
         } else if (position2.right) {
-            box2.x -= 1;
+            moveBoxIfAvailable(box2, -1, 0);
         }
         render();
     }
