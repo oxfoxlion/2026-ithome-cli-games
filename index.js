@@ -50,13 +50,13 @@ function pickRandomEmptyCell(map, occupied = []) {
     return emptyCell[randomIndex]
 }
 
-function boxPicker(map,occupied = []) {
+function boxPicker(map, occupied = []) {
     // 傳給 pickRandomEmptyCell 的變數改用傳進來的值
     let box = pickRandomEmptyCell(map, occupied);
     // 這段是確認這個箱子是否無解的邏輯，不動
     const { top, bottom, left, right, isDeadlock } = checkBox(map, box)
     if (isDeadlock || (top && box.y !== goal.y) || (bottom && box.y !== goal.y) || (left && box.x !== goal.x) || (right && box.x !== goal.x)) {
-        return boxPicker(map,occupied);
+        return boxPicker(map, occupied);
     }
 
     // 一樣傳回這個箱子的座標
@@ -149,6 +149,7 @@ let goal = pickRandomEmptyCell(map, [player]); // 先生成目標點
 let box1 = boxPicker(map, [player, goal]); // box 改為 box1，要避開項目的不變
 let box2 = boxPicker(map, [player, goal, box1]); // 新增一個 box2 ，避開的項目加上 box1
 let button = pickRandomEmptyCell(map, [player, box1, box2, goal]); //button 要避開的項目從 box 改為 box1 和 box2
+const boxes = [box1, box2]; // 這裡我們加上這一句，因為之後會常常用到
 
 //渲染畫面
 function render() {
@@ -237,31 +238,46 @@ process.stdin.on('data', (key) => {
     // 重新渲染
     render();
 
-    // //獲勝判定
-    // if (box.y === goal.y && box.x === goal.x) {
-    //     console.log("\n恭喜獲勝");
-    //     process.exit();
-    // }
+    // 獲勝判定
+    const isOnGoal = boxes.find(box => box.x === goal.x && box.y === goal.y);
+    if (isOnGoal) {
+        process.stdout.write("\n恭喜獲勝\n");
+        process.exit();
+    }
 
-    // const { top, bottom, left, right, isDeadlock } = checkBox(map, box);
+    const position1 = checkBox(map, box1);
+    const position2 = checkBox(map, box2);
 
-    // // 這邊來寫推出箱子的邏輯，首先先判斷如果是死角就不進這個流程
-    // if (player.y === button.y && player.x === button.x && !isDeadlock) {
-    //     if (top) {
-    //         box.y += 1;
-    //     } else if (bottom) {
-    //         box.y -= 1;
-    //     } else if (left) {
-    //         box.x += 1;
-    //     } else if (right) {
-    //         box.x -= 1;
-    //     }
-    //     render();
-    // }
+    // 如果箱子2在按鈕上，可以推出 box1
+    if (box2.y === button.y && box2.x === button.x && !position1.isDeadlock) {
+        if (position1.top) {
+            box1.y += 1;
+        } else if (position1.bottom) {
+            box1.y -= 1;
+        } else if (position1.left) {
+            box1.x += 1;
+        } else if (position1.right) {
+            box1.x -= 1;
+        }
+        render();
+    }
+    // 如果箱子1在按鈕上，可以推出 box1
+    if (box1.y === button.y && box1.x === button.x && !position2.isDeadlock) {
+        if (position2.top) {
+            box2.y += 1;
+        } else if (position2.bottom) {
+            box2.y -= 1;
+        } else if (position2.left) {
+            box2.x += 1;
+        } else if (position2.right) {
+            box2.x -= 1;
+        }
+        render();
+    }
 
-    // // 因為這段加在勝負判定後面，所以不用再次防勝負判定，不過也可以寫一下
-    // if (isDeadlock) {
-    //     process.stdout.write("\n箱子卡住了，遊戲結束\n");
-    //     process.exit();
-    // }
+    // 改成兩個箱子都在死角，就結束遊戲
+    if (position1.isDeadlock && position2.isDeadlock) {
+        process.stdout.write("\n箱子卡住了，遊戲結束\n");
+        process.exit();
+    }
 });
