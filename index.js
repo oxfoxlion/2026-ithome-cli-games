@@ -83,6 +83,7 @@ function checkBox (map,box) {
 let player = pickRandomEmptyCell(map);
 let goal = pickRandomEmptyCell(map, [player]); // 先生成目標點
 let box = boxPicker(); // 再生成箱子，確保執行 boxPicker 時可以取得 goal
+let button = pickRandomEmptyCell(map,[player,box,goal]) // 加上按鈕的位置
 
 //渲染畫面
 function render() {
@@ -104,6 +105,8 @@ function render() {
                 row += `\x1b[34m$\x1b[0m`
             } else if (goal.x === x && goal.y === y) {
                 row += `\x1b[31m.\x1b[0m`
+            } else if (button.x === x && button.y === y) {
+                row += `\x1b[31mx\x1b[0m`
             } else if (cell === '@' || cell === '$' || cell === '.') {
                 row += ' '
             } else {
@@ -204,7 +207,21 @@ process.stdin.on('data', (key) => {
         process.exit();
     }
 
-    const { isDeadlock } = checkBox (map,box)
+    const { top,bottom,left,right,isDeadlock } = checkBox (map,box);
+
+    // 這邊來寫推出箱子的邏輯，首先先判斷如果是死角就不進這個流程
+    if(player.y === button.y && player.x === button.x && !isDeadlock){
+        if (top){
+            box.y += 1;
+        }else if (bottom){
+            box.y -= 1;
+        }else if (left){
+            box.x += 1;
+        }else if (right){
+            box.x -= 1;
+        }
+        render();
+    }
     
     // 因為這段加在勝負判定後面，所以不用再次防勝負判定，不過也可以寫一下
     if (isDeadlock) {
