@@ -1,21 +1,21 @@
 //地圖初始化
-function createMap(width,height) {
+function createMap(width, height) {
     // 一樣先有一個陣列來儲存整個地圖
     const map = [];
- 
+
     // 熟悉的雙層迴圈，這次是直接用寬高的數值來計算
-    for (let y = 0 ; y < height ; y++){
-   
+    for (let y = 0; y < height; y++) {
+
         // 用來記錄這一行的每一個座標
         const row = [];
-        
-        for (let x = 0; x <width ; x++){
+
+        for (let x = 0; x < width; x++) {
 
             // 判斷是不是邊邊
-            const isBoder = y === 0 || y === height -1 || x === 0 || x === width -1;
-            if(isBoder){
+            const isBoder = y === 0 || y === height - 1 || x === 0 || x === width - 1;
+            if (isBoder) {
                 row.push('#')
-            }else{
+            } else {
                 row.push(' ')
             }
 
@@ -27,21 +27,21 @@ function createMap(width,height) {
     return map
 }
 
-const map = createMap(7,7);
+const map = createMap(7, 7);
 
 // occupied 預設是一個空陣列，這樣也可以避免萬一沒傳入變數的情況，不會報錯
-function pickRandomEmptyCell(map , occupied = []){
+function pickRandomEmptyCell(map, occupied = []) {
     // 用來儲存空白格
     const emptyCell = [];
 
-    for (let y = 0 ; y < map.length ; y++){
-        
-        for (let x = 0; x <map[y].length ; x++){
+    for (let y = 0; y < map.length; y++) {
+
+        for (let x = 0; x < map[y].length; x++) {
             // 判斷是不是已被占用
             const isOccupied = occupied.some(cell => cell.x === x && cell.y === y);
             // 如果該位置是空的而且尚未被占用才將這個數值儲存到 emptyCell
-            if(map[y][x]===" " && !isOccupied){
-                emptyCell.push({x,y})
+            if (map[y][x] === " " && !isOccupied) {
+                emptyCell.push({ x, y })
             }
         }
     }
@@ -50,23 +50,21 @@ function pickRandomEmptyCell(map , occupied = []){
     return emptyCell[randomIndex]
 }
 
-function boxPicker() {
-    // 這裡要避開 player 和 goal 兩個座標
-    let box = pickRandomEmptyCell(map, [player,goal]);
-
-    // 這邊是判斷箱子是否靠邊
-   const { top,bottom,left,right,isDeadlock } =checkBox(map,box);
-
-    // 這邊加上如果 goal 不在同一個邊邊上的話要重抽的邏輯
-    if (isDeadlock || (top && box.y !== goal.y ) || (bottom && box.y !== goal.y ) ||  (left && box.x !== goal.x) ||  (right && box.x !== goal.x)) {
-        return boxPicker();
+function boxPicker(map,occupied = []) {
+    // 傳給 pickRandomEmptyCell 的變數改用傳進來的值
+    let box = pickRandomEmptyCell(map, occupied);
+    // 這段是確認這個箱子是否無解的邏輯，不動
+    const { top, bottom, left, right, isDeadlock } = checkBox(map, box)
+    if (isDeadlock || (top && box.y !== goal.y) || (bottom && box.y !== goal.y) || (left && box.x !== goal.x) || (right && box.x !== goal.x)) {
+        return boxPicker(map,occupied);
     }
 
+    // 一樣傳回這個箱子的座標
     return box;
 
 }
 
-function checkBox (map,box) {
+function checkBox(map, box) {
 
     const top = map[box.y - 1][box.x] === '#';
     const bottom = map[box.y + 1][box.x] === '#';
@@ -74,16 +72,83 @@ function checkBox (map,box) {
     const right = map[box.y][box.x + 1] === '#';
     const isDeadlock = (top || bottom) && (left || right);
 
-    const position = {top,bottom,left,right,isDeadlock}
+    const position = { top, bottom, left, right, isDeadlock }
 
     return position
+}
+
+function movePlayer(dx, dy) {
+    // 藉由傳入的 dx 和 dy 來定位下一個座標，這樣我們就知道要往哪邊走
+    const nextX = player.x + dx; // 下一個 x  
+    const nextY = player.y + dy; // 下一個 y 
+
+    // 兩個 box 寫成陣列
+    const boxes = [box1, box2];
+
+    // 找到是誰位於下一個位置，記錄下來(這邊用傳參考的方式，所以修改 firstBox 也會修改到原始值)
+    const firstBox = boxes.find(box => box.x === nextX && box.y === nextY);
+
+    // 前面沒有箱子
+    if (!firstBox) {
+        // 如果前方也是空的
+        if (map[nextY][nextX] === ' ') {
+            player.x = nextX; // player 的座標移動到下一個位置
+            player.y = nextY;
+        }
+        return; // 截斷函式不往下跑
+    }
+
+    // 如果前面有箱子的話就會往下走
+    // 紀錄箱子的再下一個位置
+    const boxNextX = firstBox.x + dx;
+    const boxNextY = firstBox.y + dy;
+
+    // 判斷有沒有下一個箱子
+    const secondBox = boxes.find(
+        box =>
+            box !== firstBox &&  // 如果這個箱子不是第一個箱子，而且位置剛好在第一個箱子的下一個位置
+            box.x === boxNextX &&
+            box.y === boxNextY
+    );
+
+    // 前面有兩個箱子，要確認第二個箱子後面是空的
+    if (secondBox) {
+        // 紀錄第二個箱子的再下一個位置
+        const afterSecondBoxX = secondBox.x + dx;
+        const afterSecondBoxY = secondBox.y + dy;
+
+        // 確認這個位置是不是空的，是的話三個都往後一格
+        if (map[afterSecondBoxY][afterSecondBoxX] === ' ') {
+            player.x = nextX;
+            player.y = nextY;
+
+            firstBox.x += dx;
+            firstBox.y += dy;
+
+            secondBox.x += dx;
+            secondBox.y += dy;
+        }
+
+        return;
+    }
+
+    // 前面只有一個箱子，要確認箱子後面是空的
+    if (map[boxNextY][boxNextX] === ' ') {
+        // 兩個箱子都往後一格
+        player.x = nextX;
+        player.y = nextY;
+
+        firstBox.x = boxNextX;
+        firstBox.y = boxNextY;
+    }
 }
 
 // // 首先移動一下生成的順序
 let player = pickRandomEmptyCell(map);
 let goal = pickRandomEmptyCell(map, [player]); // 先生成目標點
-let box = boxPicker(); // 再生成箱子，確保執行 boxPicker 時可以取得 goal
-let button = pickRandomEmptyCell(map,[player,box,goal]) // 加上按鈕的位置
+let box1 = boxPicker(map, [player, goal]); // box 改為 box1，要避開項目的不變
+let box2 = boxPicker(map, [player, goal, box1]); // 新增一個 box2 ，避開的項目加上 box1
+let button = pickRandomEmptyCell(map, [player, box1, box2, goal]); //button 要避開的項目從 box 改為 box1 和 box2
 
 //渲染畫面
 function render() {
@@ -101,7 +166,9 @@ function render() {
 
             if (player.x === x && player.y === y) {
                 row += `\x1b[33m@\x1b[0m`
-            }else if (box.x === x && box.y === y) {
+            } else if (box1.x === x && box1.y === y) {
+                row += `\x1b[34m$\x1b[0m`
+            } else if (box2.x === x && box2.y === y) {
                 row += `\x1b[34m$\x1b[0m`
             } else if (goal.x === x && goal.y === y) {
                 row += `\x1b[31m.\x1b[0m`
@@ -151,81 +218,50 @@ process.stdin.on('data', (key) => {
         process.exit();
     }
 
-    // 按下上下左右方向鍵後要發生的事情
+    // 監聽器內四個方向換上這個邏輯
     if (key === '\x1b[A') {
-        // 判定是否為
-        if (player.y - 1 === box.y && player.x === box.x) {
-
-            if (map[player.y - 2][player.x] !== '#') {
-                player.y -= 1
-                box.y -= 1
-            }
-
-        } else if (map[player.y - 1][player.x] !== '#') {
-            player.y -= 1
-        }
+        movePlayer(0, -1)
     }
     if (key === '\x1b[B') {
 
-        if (player.y + 1 === box.y && player.x === box.x) {
-
-            if (map[player.y + 2][player.x] !== '#') {
-                player.y += 1
-                box.y += 1
-            }
-
-        } else if (map[player.y + 1][player.x] !== '#') player.y += 1;
+        movePlayer(0, 1)
     }
     if (key === '\x1b[C') {
 
-        if (player.y === box.y && player.x + 1 === box.x) {
-
-            if (map[player.y][player.x + 2] !== '#') {
-                player.x += 1
-                box.x += 1
-            }
-
-        } else if (map[player.y][player.x + 1] !== '#') player.x += 1;
+        movePlayer(1, 0)
     }
     if (key === '\x1b[D') {
-        if (player.y === box.y && player.x - 1 === box.x) {
-
-            if (map[player.y][player.x - 2] !== '#') {
-                player.x -= 1
-                box.x -= 1
-            }
-
-        } else if (map[player.y][player.x - 1] !== '#') player.x -= 1;
+        movePlayer(-1, 0)
     }
 
     // 重新渲染
     render();
 
-    //獲勝判定
-    if (box.y === goal.y && box.x === goal.x) {
-        console.log("\n恭喜獲勝");
-        process.exit();
-    }
+    // //獲勝判定
+    // if (box.y === goal.y && box.x === goal.x) {
+    //     console.log("\n恭喜獲勝");
+    //     process.exit();
+    // }
 
-    const { top,bottom,left,right,isDeadlock } = checkBox (map,box);
+    // const { top, bottom, left, right, isDeadlock } = checkBox(map, box);
 
-    // 這邊來寫推出箱子的邏輯，首先先判斷如果是死角就不進這個流程
-    if(player.y === button.y && player.x === button.x && !isDeadlock){
-        if (top){
-            box.y += 1;
-        }else if (bottom){
-            box.y -= 1;
-        }else if (left){
-            box.x += 1;
-        }else if (right){
-            box.x -= 1;
-        }
-        render();
-    }
-    
-    // 因為這段加在勝負判定後面，所以不用再次防勝負判定，不過也可以寫一下
-    if (isDeadlock) {
-        process.stdout.write("\n箱子卡住了，遊戲結束\n");
-        process.exit();
-    }
+    // // 這邊來寫推出箱子的邏輯，首先先判斷如果是死角就不進這個流程
+    // if (player.y === button.y && player.x === button.x && !isDeadlock) {
+    //     if (top) {
+    //         box.y += 1;
+    //     } else if (bottom) {
+    //         box.y -= 1;
+    //     } else if (left) {
+    //         box.x += 1;
+    //     } else if (right) {
+    //         box.x -= 1;
+    //     }
+    //     render();
+    // }
+
+    // // 因為這段加在勝負判定後面，所以不用再次防勝負判定，不過也可以寫一下
+    // if (isDeadlock) {
+    //     process.stdout.write("\n箱子卡住了，遊戲結束\n");
+    //     process.exit();
+    // }
 });
