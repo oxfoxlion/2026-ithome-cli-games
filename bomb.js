@@ -102,6 +102,8 @@ function render() {
                 row += `\x1b[35m&\x1b[0m`
             }else if (boxes.some(box => box.x === x && box.y === y)) {
                 row += `\x1b[34mX\x1b[0m`  // 用藍色和 X 來呈現箱子
+            }else if (bombs.some(bomb => bomb.x === x && bomb.y === y)) {
+                row += `\x1b[31mB\x1b[0m`  // 用藍色和 X 來呈現箱子
             } else {
                 row += `\x1b[32m${cell}\x1b[0m`
             }
@@ -136,6 +138,12 @@ function movePlayer(dx, dy) {
     }
 }
 
+function putBomb(){
+    let bombX = player.x;
+    let bombY = player.y;
+    bombs.push({x:bombX,y:bombY})
+}
+
 // -----------工具區結束
 // -----------邏輯區開始
 
@@ -150,6 +158,7 @@ let enemy3 = pickRandomEmptyCell(map,[player,enemy1,enemy2]);
 let boxes = createBoxes(map,10,[player,enemy1,enemy2,enemy3]);
 let HP = 2;
 let enemyNum = 1;
+const bombs = [];
 
 //初次渲染先推出固定的行數
 process.stdout.write("\n".repeat(map.length +1));
@@ -171,6 +180,11 @@ process.stdin.on('data', (key) => {
     // 如果按下 Ctrl + C 強制退出遊戲
     if (key === '\x03') {
         process.exit();
+    }
+
+    // 按下空白鍵放炸彈
+    if (key === ' ') {
+        putBomb()
     }
 
     // 四個方向
