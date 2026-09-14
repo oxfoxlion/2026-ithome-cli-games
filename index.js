@@ -134,7 +134,7 @@ function movePlayer(dx, dy) {
 
     // 前面只有一個箱子，要確認箱子後面是空的
     if (map[boxNextY][boxNextX] === ' ') {
-        // 兩個箱子都往後一格
+        // player 和前面的箱子都往前一格
         player.x = nextX;
         player.y = nextY;
 
