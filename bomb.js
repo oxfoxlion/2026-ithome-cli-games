@@ -9,9 +9,9 @@ function createMap(width, height) {
 
         for (let x = 0; x < width; x++) {
 
-            const isBoder = y === 0 || y === height - 1 || x === 0 || x === width - 1;
+            const isBorder = y === 0 || y === height - 1 || x === 0 || x === width - 1;
             const isWall = y % 2 === 0 && x % 2 === 0;
-            if (isBoder || isWall) {
+            if (isBorder || isWall) {
                 row.push('#')
             } else {
                 row.push(' ')
