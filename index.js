@@ -12,8 +12,8 @@ function createMap(width,height) {
         for (let x = 0; x <width ; x++){
 
             // 判斷是不是邊邊
-            const isBoder = y === 0 || y === height -1 || x === 0 || x === width -1;
-            if(isBoder){
+            const isBorder = y === 0 || y === height -1 || x === 0 || x === width -1;
+            if(isBorder){
                 row.push('#')
             }else{
                 row.push(' ')
