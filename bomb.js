@@ -92,7 +92,9 @@ function render() {
 
             const cell = map[y][x]
 
-            if (player.x === x && player.y === y) {
+            if ( explodeCells.some(explodeCell => explodeCell.x === x && explodeCell.y === y) ){
+                row += `\x1b[31m*\x1b[0m` // 用紅色 * 來呈現爆炸
+            }else if (player.x === x && player.y === y) {
                 row += `\x1b[33m@\x1b[0m`
             }else if (enemy1.x === x && enemy1.y === y) {
                 row += `\x1b[35m&\x1b[0m`
@@ -103,7 +105,7 @@ function render() {
             }else if (boxes.some(box => box.x === x && box.y === y)) {
                 row += `\x1b[34mX\x1b[0m`  // 用藍色和 X 來呈現箱子
             }else if (bombs.some(bomb => bomb.x === x && bomb.y === y)) {
-                row += `\x1b[31mB\x1b[0m`  // 用藍色和 X 來呈現箱子
+                row += `\x1b[31mB\x1b[0m`  // 用紅色和 B 來呈現炸彈
             } else {
                 row += `\x1b[32m${cell}\x1b[0m`
             }
@@ -138,10 +140,36 @@ function movePlayer(dx, dy) {
     }
 }
 
-function putBomb(){
+function putBomb(map){
     let bombX = player.x;
     let bombY = player.y;
     bombs.push({x:bombX,y:bombY})
+
+    explodeBomb(map,bombX,bombY);
+}
+
+function explodeBomb(map,bombX,bombY){
+    // 找出影響範圍座標
+    const surroundingCells = [
+        {x:bombX, y:bombY},
+        {x:bombX - 1, y:bombY},
+        {x:bombX + 1, y:bombY},
+        {x:bombX, y:bombY - 1},
+        {x:bombX, y:bombY + 1},
+    ]
+
+    // 扣除牆壁
+    for (let i = 0; i < surroundingCells.length; i++) {
+        
+            // 如果該位置是空的而且尚未被占用才將這個數值儲存到 emptyCell
+            if (surroundingCells[i].x === map) {
+                emptyCell.push({ x, y })
+
+            }
+    }
+
+    // 寫入 explodeCells
+
 }
 
 // -----------工具區結束
@@ -158,7 +186,8 @@ let enemy3 = pickRandomEmptyCell(map,[player,enemy1,enemy2]);
 let boxes = createBoxes(map,10,[player,enemy1,enemy2,enemy3]);
 let HP = 2;
 let enemyNum = 1;
-const bombs = [];
+const bombs = []; // 尚未爆炸的炸彈
+const explodeCells = [{x:3,y:1},{x:3,y:2},{x:3,y:3}]; // 爆炸中的格子
 
 //初次渲染先推出固定的行數
 process.stdout.write("\n".repeat(map.length +1));
@@ -184,7 +213,7 @@ process.stdin.on('data', (key) => {
 
     // 按下空白鍵放炸彈
     if (key === ' ') {
-        putBomb()
+        putBomb(map)
     }
 
     // 四個方向
