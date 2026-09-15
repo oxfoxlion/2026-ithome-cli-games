@@ -96,11 +96,11 @@ function render() {
                 row += `\x1b[31m*\x1b[0m` // 用紅色 * 來呈現爆炸
             }else if (player.x === x && player.y === y) {
                 row += `\x1b[33m@\x1b[0m`
-            }else if (enemy1.x === x && enemy1.y === y) {
+            }else if (enemy1.x === x && enemy1.y === y && enemy1.live === true) {
                 row += `\x1b[35m&\x1b[0m`
-            }else if (enemy2.x === x && enemy2.y === y) {
+            }else if (enemy2.x === x && enemy2.y === y && enemy2.live === true) {
                 row += `\x1b[35m&\x1b[0m`
-            }else if (enemy3.x === x && enemy3.y === y) {
+            }else if (enemy3.x === x && enemy3.y === y && enemy3.live === true) {
                 row += `\x1b[35m&\x1b[0m`
             }else if (boxes.some(box => box.x === x && box.y === y)) {
                 row += `\x1b[34mX\x1b[0m`  // 用藍色和 X 來呈現箱子
@@ -170,6 +170,21 @@ function explodeBomb(map,bombX,bombY){
 
     render();
 
+    // 有敵人的處理
+    const hasEnemy1 = surroundingCells.find(cell => cell.x === enemy1.x && cell.y === enemy1.y);
+    const hasEnemy2 = surroundingCells.find(cell => cell.x === enemy2.x && cell.y === enemy1.y);
+    const hasEnemy3 = surroundingCells.find(cell => cell.x === enemy3.x && cell.y === enemy1.y);
+    if (hasEnemy1) {
+        enemy1.live = false;
+    }
+    if (hasEnemy2) {
+        enemy2.live =false;
+    }
+    if (hasEnemy3) {
+        enemy3.live=false;
+    }
+
+    setTimeout(()=>render,1000);
 }
 
 // -----------工具區結束
@@ -180,9 +195,9 @@ const map = createMap(15, 9);
 
 // 遊戲物件區
 let player = pickRandomEmptyCell(map);
-let enemy1 = pickRandomEmptyCell(map,[player]);
-let enemy2 = pickRandomEmptyCell(map,[player,enemy1]);
-let enemy3 = pickRandomEmptyCell(map,[player,enemy1,enemy2]);
+let enemy1 = {...pickRandomEmptyCell(map,[player]),live:true};
+let enemy2 = {...pickRandomEmptyCell(map,[player,enemy1]),live:true};
+let enemy3 = {...pickRandomEmptyCell(map,[player,enemy1,enemy2]),live:true};
 let boxes = createBoxes(map,10,[player,enemy1,enemy2,enemy3]);
 let HP = 2;
 let enemyNum = 1;
