@@ -159,16 +159,14 @@ function explodeBomb(map,bombX,bombY){
     ]
 
     // 扣除牆壁
-    for (let i = 0; i < surroundingCells.length; i++) {
-        
-            // 如果該位置是空的而且尚未被占用才將這個數值儲存到 emptyCell
-            if (surroundingCells[i].x === map) {
-                emptyCell.push({ x, y })
+    for(let i = 0 ; i < surroundingCells.length; i++){
+        thisX = surroundingCells[i].x;
+        thisY = surroundingCells[i].y;
 
-            }
+        if(map[thisY][thisX] !== '#'){
+            explodeCells.push(surroundingCells[i])
+        }
     }
-
-    // 寫入 explodeCells
 
 }
 
@@ -187,7 +185,7 @@ let boxes = createBoxes(map,10,[player,enemy1,enemy2,enemy3]);
 let HP = 2;
 let enemyNum = 1;
 const bombs = []; // 尚未爆炸的炸彈
-const explodeCells = [{x:3,y:1},{x:3,y:2},{x:3,y:3}]; // 爆炸中的格子
+const explodeCells = []; // 爆炸中的格子
 
 //初次渲染先推出固定的行數
 process.stdout.write("\n".repeat(map.length +1));
