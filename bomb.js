@@ -172,8 +172,8 @@ function explodeBomb(map,bombX,bombY){
 
     // 有敵人的處理
     const hasEnemy1 = surroundingCells.find(cell => cell.x === enemy1.x && cell.y === enemy1.y);
-    const hasEnemy2 = surroundingCells.find(cell => cell.x === enemy2.x && cell.y === enemy1.y);
-    const hasEnemy3 = surroundingCells.find(cell => cell.x === enemy3.x && cell.y === enemy1.y);
+    const hasEnemy2 = surroundingCells.find(cell => cell.x === enemy2.x && cell.y === enemy2.y);
+    const hasEnemy3 = surroundingCells.find(cell => cell.x === enemy3.x && cell.y === enemy3.y);
     if (hasEnemy1) {
         enemy1.live = false;
     }
@@ -181,10 +181,14 @@ function explodeBomb(map,bombX,bombY){
         enemy2.live =false;
     }
     if (hasEnemy3) {
-        enemy3.live=false;
+        enemy3.live =false;
     }
 
-    setTimeout(()=>render,1000);
+    explodeCells = [];
+    const newBombs = bombs.filter(item => !(item.x === bombX && item.y === bombY));
+    bombs = newBombs;
+
+    setTimeout(()=>render(),1000);
 }
 
 // -----------工具區結束
@@ -201,8 +205,8 @@ let enemy3 = {...pickRandomEmptyCell(map,[player,enemy1,enemy2]),live:true};
 let boxes = createBoxes(map,10,[player,enemy1,enemy2,enemy3]);
 let HP = 2;
 let enemyNum = 1;
-const bombs = []; // 尚未爆炸的炸彈
-const explodeCells = []; // 爆炸中的格子
+let bombs = []; // 尚未爆炸的炸彈
+let explodeCells = []; // 爆炸中的格子
 
 //初次渲染先推出固定的行數
 process.stdout.write("\n".repeat(map.length +1));
