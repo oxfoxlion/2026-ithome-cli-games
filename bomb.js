@@ -145,7 +145,7 @@ function putBomb(map){
     let bombY = player.y;
     bombs.push({x:bombX,y:bombY})
 
-    explodeBomb(map,bombX,bombY);
+    setTimeout(()=>explodeBomb(map,bombX,bombY),3000);
 }
 
 function explodeBomb(map,bombX,bombY){
@@ -167,6 +167,8 @@ function explodeBomb(map,bombX,bombY){
             explodeCells.push(surroundingCells[i])
         }
     }
+
+    render();
 
 }
 
