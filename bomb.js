@@ -170,6 +170,17 @@ function explodeBomb(map,bombX,bombY){
 
     render();
 
+    // 有玩家的處理
+    const hasPlayer = surroundingCells.find(cell => cell.x === player.x && cell.y === player.y);
+    if(hasPlayer) {
+        HP -= 1;
+    }
+
+    if(HP <= 0) {
+        process.stdout.write("\n失去所有HP，遊戲結束\n");
+        process.exit();
+    }
+
     // 有敵人的處理
     const hasEnemy1 = surroundingCells.find(cell => cell.x === enemy1.x && cell.y === enemy1.y);
     const hasEnemy2 = surroundingCells.find(cell => cell.x === enemy2.x && cell.y === enemy2.y);
@@ -183,10 +194,20 @@ function explodeBomb(map,bombX,bombY){
     if (hasEnemy3) {
         enemy3.live =false;
     }
+    enemyNum = enemies.filter(enemy => enemy.live === true).length;
+    if(enemyNum <= 0) {
+        process.stdout.write("\n所有敵人都被消滅，恭喜獲勝\n");
+        process.exit();
+    }
 
-    explodeCells = [];
-    const newBombs = bombs.filter(item => !(item.x === bombX && item.y === bombY));
-    bombs = newBombs;
+    // 逐一篩選這顆炸彈的爆炸範圍
+    for(let i = 0 ; i < surroundingCells.length; i++){
+        explodeCells = explodeCells.filter(cell => cell !== surroundingCells[i]);
+        boxes = boxes.filter(box => !(box.x === surroundingCells[i].x && box.y === surroundingCells[i].y));
+    }
+
+    // 清除炸彈
+    bombs = bombs.filter(item => !(item.x === bombX && item.y === bombY));
 
     setTimeout(()=>render(),1000);
 }
@@ -202,9 +223,11 @@ let player = pickRandomEmptyCell(map);
 let enemy1 = {...pickRandomEmptyCell(map,[player]),live:true};
 let enemy2 = {...pickRandomEmptyCell(map,[player,enemy1]),live:true};
 let enemy3 = {...pickRandomEmptyCell(map,[player,enemy1,enemy2]),live:true};
+const enemies = [enemy1,enemy2,enemy3];
+let enemyNum = enemies.filter(enemy => enemy.live === true).length;
+
 let boxes = createBoxes(map,10,[player,enemy1,enemy2,enemy3]);
-let HP = 2;
-let enemyNum = 1;
+let HP = 3;
 let bombs = []; // 尚未爆炸的炸彈
 let explodeCells = []; // 爆炸中的格子
 
