@@ -160,8 +160,8 @@ function explodeBomb(map,bombX,bombY){
 
     // 扣除牆壁
     for(let i = 0 ; i < surroundingCells.length; i++){
-        thisX = surroundingCells[i].x;
-        thisY = surroundingCells[i].y;
+        const thisX = surroundingCells[i].x;
+        const thisY = surroundingCells[i].y;
 
         if(map[thisY][thisX] !== '#'){
             explodeCells.push(surroundingCells[i])
@@ -212,6 +212,49 @@ function explodeBomb(map,bombX,bombY){
     setTimeout(()=>render(),1000);
 }
 
+function moveEnemy(map,boxes,enemy){
+    // 計算並重新賦予座標
+    if(enemy === enemy1){
+        enemy1 = pickNextEnemy1(map,boxes,enemy1); // 預期產出的格式 {x:num,y:num,live:true}
+    }
+
+    if(enemy === enemy2){
+        enemy2 = pickNextEnemy1(map,boxes,enemy2);
+    }
+
+    if(enemy === enemy3){
+        enemy3 = pickNextEnemy1(map,boxes,enemy3);
+    }
+}
+
+function pickNextEnemy1(map,boxes,enemy){
+    const enemyX = enemy.x;
+    const enemyY = enemy.y;
+    let allowCell = [];
+    // 找出周圍的座標
+    const surroundingCells = [
+        {x:enemyX - 1, y:enemyY},
+        {x:enemyX + 1, y:enemyY},
+        {x:enemyX, y:enemyY - 1},
+        {x:enemyX, y:enemyY + 1},
+    ]
+
+    // 扣除牆壁
+    for(let i = 0 ; i < surroundingCells.length; i++){
+        const thisX = surroundingCells[i].x;
+        const thisY = surroundingCells[i].y;
+        const isWall = map[thisY][thisX] === '#';
+        const isBox = boxes.find(box => box.x === thisX && box.y === thisY);
+
+        if( !isWall && !isBox){
+            allowCell.push(surroundingCells[i])
+        }
+    }
+
+    const randomIndex = Math.floor(Math.random() * allowCell.length);
+    return {...allowCell[randomIndex],live:enemy.live};
+}
+
 // -----------工具區結束
 // -----------邏輯區開始
 
@@ -225,7 +268,6 @@ let enemy2 = {...pickRandomEmptyCell(map,[player,enemy1]),live:true};
 let enemy3 = {...pickRandomEmptyCell(map,[player,enemy1,enemy2]),live:true};
 const enemies = [enemy1,enemy2,enemy3];
 let enemyNum = enemies.filter(enemy => enemy.live === true).length;
-
 let boxes = createBoxes(map,10,[player,enemy1,enemy2,enemy3]);
 let HP = 3;
 let bombs = []; // 尚未爆炸的炸彈
@@ -279,4 +321,13 @@ process.stdin.on('data', (key) => {
     
 });
 
+// 敵人移動
+setInterval(()=>{
+    moveEnemy(map,boxes,enemy1);
+    moveEnemy(map,boxes,enemy2);
+    moveEnemy(map,boxes,enemy3);
+
+    // 渲染
+    render();
+    },1000);
 
