@@ -48,7 +48,7 @@ function pickRandomEmptyCell(map, occupied = []) {
     return emptyCell[randomIndex]
 }
 
-function createBoxes(map,boxesNum, occupied = []) {
+function createBoxes(map, boxesNum, occupied = []) {
 
     // 用來儲存箱子們的座標
     let boxes = [];
@@ -69,13 +69,13 @@ function createBoxes(map,boxesNum, occupied = []) {
     }
 
     // 隨機選 10 個位置
-    for (let i = emptyCell.length -1; i > 0; i --) { // 這裡是由大到小遞減的迴圈
-        const j = Math.floor(Math.random() * (i+1)); // 隨機在小於等於 i 的範圍內選一個數字
-        [emptyCell[i],emptyCell[j]] = [emptyCell[j],emptyCell[i]]; // 兩者交換
+    for (let i = emptyCell.length - 1; i > 0; i--) { // 這裡是由大到小遞減的迴圈
+        const j = Math.floor(Math.random() * (i + 1)); // 隨機在小於等於 i 的範圍內選一個數字
+        [emptyCell[i], emptyCell[j]] = [emptyCell[j], emptyCell[i]]; // 兩者交換
     }
 
     // 存進 boxes，這裡要記得帶入 boxesNum
-    boxes = emptyCell.slice(0,boxesNum);
+    boxes = emptyCell.slice(0, boxesNum);
 
     return boxes;
 }
@@ -92,19 +92,19 @@ function render() {
 
             const cell = map[y][x]
 
-            if ( explodeCells.some(explodeCell => explodeCell.x === x && explodeCell.y === y) ){
+            if (explodeCells.some(explodeCell => explodeCell.x === x && explodeCell.y === y)) {
                 row += `\x1b[31m*\x1b[0m` // 用紅色 * 來呈現爆炸
-            }else if (player.x === x && player.y === y) {
+            } else if (player.x === x && player.y === y) {
                 row += `\x1b[33m@\x1b[0m`
-            }else if (enemy1.x === x && enemy1.y === y && enemy1.live === true) {
+            } else if (enemy1.x === x && enemy1.y === y && enemy1.live === true) {
                 row += `\x1b[35m&\x1b[0m`
-            }else if (enemy2.x === x && enemy2.y === y && enemy2.live === true) {
+            } else if (enemy2.x === x && enemy2.y === y && enemy2.live === true) {
                 row += `\x1b[35m&\x1b[0m`
-            }else if (enemy3.x === x && enemy3.y === y && enemy3.live === true) {
+            } else if (enemy3.x === x && enemy3.y === y && enemy3.live === true) {
                 row += `\x1b[35m&\x1b[0m`
-            }else if (boxes.some(box => box.x === x && box.y === y)) {
+            } else if (boxes.some(box => box.x === x && box.y === y)) {
                 row += `\x1b[34mX\x1b[0m`  // 用藍色和 X 來呈現箱子
-            }else if (bombs.some(bomb => bomb.x === x && bomb.y === y)) {
+            } else if (bombs.some(bomb => bomb.x === x && bomb.y === y)) {
                 row += `\x1b[31mB\x1b[0m`  // 用紅色和 B 來呈現炸彈
             } else {
                 row += `\x1b[32m${cell}\x1b[0m`
@@ -115,7 +115,7 @@ function render() {
         frame += row + '\n'
     }
 
-    process.stdout.write(`\x1b[${map.length +1 }A`); // 加上儀表板這一行也要一起重新渲染
+    process.stdout.write(`\x1b[${map.length + 1}A`); // 加上儀表板這一行也要一起重新渲染
     process.stdout.write(`\x1b[31mHP:${HP}\x1b[35m 敵人:${enemyNum}\x1b[0m\n`); // 儀表版
     process.stdout.write(frame); // 印出畫面
 
@@ -140,30 +140,30 @@ function movePlayer(dx, dy) {
     }
 }
 
-function putBomb(map){
+function putBomb(map) {
     let bombX = player.x;
     let bombY = player.y;
-    bombs.push({x:bombX,y:bombY})
+    bombs.push({ x: bombX, y: bombY })
 
-    setTimeout(()=>explodeBomb(map,bombX,bombY),3000);
+    setTimeout(() => explodeBomb(map, bombX, bombY), 3000);
 }
 
-function explodeBomb(map,bombX,bombY){
+function explodeBomb(map, bombX, bombY) {
     // 找出影響範圍座標
     const surroundingCells = [
-        {x:bombX, y:bombY},
-        {x:bombX - 1, y:bombY},
-        {x:bombX + 1, y:bombY},
-        {x:bombX, y:bombY - 1},
-        {x:bombX, y:bombY + 1},
+        { x: bombX, y: bombY },
+        { x: bombX - 1, y: bombY },
+        { x: bombX + 1, y: bombY },
+        { x: bombX, y: bombY - 1 },
+        { x: bombX, y: bombY + 1 },
     ]
 
     // 扣除牆壁
-    for(let i = 0 ; i < surroundingCells.length; i++){
+    for (let i = 0; i < surroundingCells.length; i++) {
         const thisX = surroundingCells[i].x;
         const thisY = surroundingCells[i].y;
 
-        if(map[thisY][thisX] !== '#'){
+        if (map[thisY][thisX] !== '#') {
             explodeCells.push(surroundingCells[i])
         }
     }
@@ -172,11 +172,11 @@ function explodeBomb(map,bombX,bombY){
 
     // 有玩家的處理
     const hasPlayer = surroundingCells.find(cell => cell.x === player.x && cell.y === player.y);
-    if(hasPlayer) {
+    if (hasPlayer) {
         HP -= 1;
     }
 
-    if(HP <= 0) {
+    if (HP <= 0) {
         process.stdout.write("\n失去所有HP，遊戲結束\n");
         process.exit();
     }
@@ -189,19 +189,19 @@ function explodeBomb(map,bombX,bombY){
         enemy1.live = false;
     }
     if (hasEnemy2) {
-        enemy2.live =false;
+        enemy2.live = false;
     }
     if (hasEnemy3) {
-        enemy3.live =false;
+        enemy3.live = false;
     }
     enemyNum = enemies.filter(enemy => enemy.live === true).length;
-    if(enemyNum <= 0) {
+    if (enemyNum <= 0) {
         process.stdout.write("\n所有敵人都被消滅，恭喜獲勝\n");
         process.exit();
     }
 
     // 逐一篩選這顆炸彈的爆炸範圍
-    for(let i = 0 ; i < surroundingCells.length; i++){
+    for (let i = 0; i < surroundingCells.length; i++) {
         explodeCells = explodeCells.filter(cell => cell !== surroundingCells[i]);
         boxes = boxes.filter(box => !(box.x === surroundingCells[i].x && box.y === surroundingCells[i].y));
     }
@@ -209,52 +209,57 @@ function explodeBomb(map,bombX,bombY){
     // 清除炸彈
     bombs = bombs.filter(item => !(item.x === bombX && item.y === bombY));
 
-    setTimeout(()=>render(),1000);
+    setTimeout(() => render(), 1000);
 }
 
-function moveEnemy(map,boxes,enemy){
-    // 計算並重新賦予座標
-    if(enemy === enemy1){
-        enemy1 = pickNextEnemy1(map,boxes,enemy1); // 預期產出的格式 {x:num,y:num,live:true}
-    }
-
-    if(enemy === enemy2){
-        enemy2 = pickNextEnemy1(map,boxes,enemy2);
-    }
-
-    if(enemy === enemy3){
-        enemy3 = pickNextEnemy1(map,boxes,enemy3);
-    }
-}
-
-function pickNextEnemy1(map,boxes,enemy){
+function moveEnemy(map, boxes, enemy) {
     const enemyX = enemy.x;
     const enemyY = enemy.y;
     let allowCell = [];
     // 找出周圍的座標
     const surroundingCells = [
-        {x:enemyX - 1, y:enemyY},
-        {x:enemyX + 1, y:enemyY},
-        {x:enemyX, y:enemyY - 1},
-        {x:enemyX, y:enemyY + 1},
+        { x: enemyX - 1, y: enemyY },
+        { x: enemyX + 1, y: enemyY },
+        { x: enemyX, y: enemyY - 1 },
+        { x: enemyX, y: enemyY + 1 },
     ]
 
-    // 扣除牆壁
-    for(let i = 0 ; i < surroundingCells.length; i++){
+    // 找到可前進的選項
+    for (let i = 0; i < surroundingCells.length; i++) {
         const thisX = surroundingCells[i].x;
         const thisY = surroundingCells[i].y;
         const isWall = map[thisY][thisX] === '#';
         const isBox = boxes.find(box => box.x === thisX && box.y === thisY);
 
-        if( !isWall && !isBox){
+        if (!isWall && !isBox) {
             allowCell.push(surroundingCells[i])
         }
     }
 
-    const randomIndex = Math.floor(Math.random() * allowCell.length);
-    return {...allowCell[randomIndex],live:enemy.live};
+
+    // 計算並重新賦予座標
+    if (enemy === enemy1) {
+        enemy1 = pickNextEnemy1(enemy1,allowCell);
+    }
+
+    if (enemy === enemy2) {
+        enemy2 = pickNextEnemy2(enemy2,allowCell);
+    }
+
+    if (enemy === enemy3) {
+        enemy3 = pickNextEnemy1(enemy3,allowCell);
+    }
 }
 
+function pickNextEnemy1(enemy,allowCell) {
+    const randomIndex = Math.floor(Math.random() * allowCell.length);
+    return { ...allowCell[randomIndex], live: enemy.live };
+}
+
+function pickNextEnemy2(enemy,allowCell) {
+    const randomIndex = Math.floor(Math.random() * allowCell.length);
+    return { ...allowCell[randomIndex], live: enemy.live };
+}
 // -----------工具區結束
 // -----------邏輯區開始
 
@@ -263,18 +268,18 @@ const map = createMap(15, 9);
 
 // 遊戲物件區
 let player = pickRandomEmptyCell(map);
-let enemy1 = {...pickRandomEmptyCell(map,[player]),live:true};
-let enemy2 = {...pickRandomEmptyCell(map,[player,enemy1]),live:true};
-let enemy3 = {...pickRandomEmptyCell(map,[player,enemy1,enemy2]),live:true};
-const enemies = [enemy1,enemy2,enemy3];
+let enemy1 = { ...pickRandomEmptyCell(map, [player]), live: true };
+let enemy2 = { ...pickRandomEmptyCell(map, [player, enemy1]), live: true };
+let enemy3 = { ...pickRandomEmptyCell(map, [player, enemy1, enemy2]), live: true };
+const enemies = [enemy1, enemy2, enemy3];
 let enemyNum = enemies.filter(enemy => enemy.live === true).length;
-let boxes = createBoxes(map,10,[player,enemy1,enemy2,enemy3]);
+let boxes = createBoxes(map, 10, [player, enemy1, enemy2, enemy3]);
 let HP = 3;
 let bombs = []; // 尚未爆炸的炸彈
 let explodeCells = []; // 爆炸中的格子
 
 //初次渲染先推出固定的行數
-process.stdout.write("\n".repeat(map.length +1));
+process.stdout.write("\n".repeat(map.length + 1));
 render();
 
 // 監聽器前置設定
@@ -318,16 +323,16 @@ process.stdin.on('data', (key) => {
     // 重新渲染
     render();
 
-    
+
 });
 
 // 敵人移動
-setInterval(()=>{
-    moveEnemy(map,boxes,enemy1);
-    moveEnemy(map,boxes,enemy2);
-    moveEnemy(map,boxes,enemy3);
+setInterval(() => {
+    moveEnemy(map, boxes, enemy1);
+    moveEnemy(map, boxes, enemy2);
+    moveEnemy(map, boxes, enemy3);
 
     // 渲染
     render();
-    },1000);
+}, 1000);
 
