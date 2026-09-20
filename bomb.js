@@ -212,10 +212,27 @@ function explodeBomb(map, bombX, bombY) {
     setTimeout(() => render(), 1000);
 }
 
-function moveEnemy(map, boxes, enemy) {
+function moveEnemy(map, boxes, enemy, player) {
+
+    // 計算並重新賦予座標
+    // if (enemy === enemy1) {
+    //     enemy1 = pickNextEnemy1(map, boxes, enemy1);
+    // }
+
+    if (enemy === enemy2) {
+        enemy2 = pickNextEnemy2(map, boxes, enemy2, player);
+    }
+
+    // if (enemy === enemy3) {
+    //     enemy3 = pickNextEnemy1(map, boxes, enemy3);
+    // }
+}
+
+function pickNextEnemy1(map, boxes, enemy) {
     const enemyX = enemy.x;
     const enemyY = enemy.y;
     let allowCell = [];
+    
     // 找出周圍的座標
     const surroundingCells = [
         { x: enemyX - 1, y: enemyY },
@@ -236,29 +253,59 @@ function moveEnemy(map, boxes, enemy) {
         }
     }
 
-
-    // 計算並重新賦予座標
-    if (enemy === enemy1) {
-        enemy1 = pickNextEnemy1(enemy1,allowCell);
-    }
-
-    if (enemy === enemy2) {
-        enemy2 = pickNextEnemy2(enemy2,allowCell);
-    }
-
-    if (enemy === enemy3) {
-        enemy3 = pickNextEnemy1(enemy3,allowCell);
-    }
-}
-
-function pickNextEnemy1(enemy,allowCell) {
     const randomIndex = Math.floor(Math.random() * allowCell.length);
     return { ...allowCell[randomIndex], live: enemy.live };
 }
 
-function pickNextEnemy2(enemy,allowCell) {
-    const randomIndex = Math.floor(Math.random() * allowCell.length);
-    return { ...allowCell[randomIndex], live: enemy.live };
+function pickNextEnemy2(map, boxes, enemy, target) {
+    // queue 內除了目前座標，也記錄從 enemy 出發時走的第一步
+    const queue = [{ x: enemy.x, y: enemy.y, firstStep: null }];
+    const visited = new Set([`${enemy.x},${enemy.y}`]);
+
+    while (queue.length > 0) {
+        const current = queue.shift();
+
+        // BFS 第一次抵達目標時，走過的路徑一定是最短路徑
+        if (current.x === target.x && current.y === target.y) {
+            return current.firstStep
+                ? { ...current.firstStep, live: enemy.live }
+                : { ...enemy };
+        }
+
+        const surroundingCells = [
+            { x: current.x - 1, y: current.y },
+            { x: current.x + 1, y: current.y },
+            { x: current.x, y: current.y - 1 },
+            { x: current.x, y: current.y + 1 },
+        ];
+
+        for (const cell of surroundingCells) {
+            const key = `${cell.x},${cell.y}`;
+            const isOutsideMap =
+                cell.y < 0 || cell.y >= map.length ||
+                cell.x < 0 || cell.x >= map[cell.y].length;
+
+            if (isOutsideMap || visited.has(key)) {
+                continue;
+            }
+
+            const isWall = map[cell.y][cell.x] === '#';
+            const isBox = boxes.some(box => box.x === cell.x && box.y === cell.y);
+
+            if (isWall || isBox) {
+                continue;
+            }
+
+            visited.add(key);
+            queue.push({
+                ...cell,
+                firstStep: current.firstStep || cell,
+            });
+        }
+    }
+
+    // 找不到通往玩家的路徑時，enemy2 留在原地
+    return { ...enemy };
 }
 // -----------工具區結束
 // -----------邏輯區開始
@@ -328,11 +375,10 @@ process.stdin.on('data', (key) => {
 
 // 敵人移動
 setInterval(() => {
-    moveEnemy(map, boxes, enemy1);
-    moveEnemy(map, boxes, enemy2);
-    moveEnemy(map, boxes, enemy3);
+    moveEnemy(map, boxes, enemy1, player);
+    moveEnemy(map, boxes, enemy2, player);
+    moveEnemy(map, boxes, enemy3, player);
 
     // 渲染
     render();
 }, 1000);
-
