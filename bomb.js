@@ -169,13 +169,21 @@ function movePlayer(dx, dy) {
 function putBomb(map) {
     let bombX = player.x;
     let bombY = player.y;
-    const explodeAt = Date.now() + 3000;
-    bombs.push({ x: bombX, y: bombY, explodeAt })
+    const hasBomb = bombs.some(bomb => bomb.x === bombX && bomb.y === bombY);
 
-    setTimeout(() => explodeBomb(map, bombX, bombY), 3000);
+    if (hasBomb) {
+        return;
+    }
+
+    const explodeAt = Date.now() + 3000;
+    const bomb = { x: bombX, y: bombY, explodeAt };
+    bombs.push(bomb)
+
+    setTimeout(() => explodeBomb(map, bomb), 3000);
 }
 
-function explodeBomb(map, bombX, bombY) {
+function explodeBomb(map, bomb) {
+    const { x: bombX, y: bombY } = bomb;
     // 找出影響範圍座標
     const surroundingCells = [
         { x: bombX, y: bombY },
@@ -225,7 +233,7 @@ function explodeBomb(map, bombX, bombY) {
     }
 
     // 清除炸彈
-    bombs = bombs.filter(item => !(item.x === bombX && item.y === bombY));
+    bombs = bombs.filter(item => item !== bomb);
 
     setTimeout(() => render(), 1000);
 }
