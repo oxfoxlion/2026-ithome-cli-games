@@ -148,6 +148,12 @@ function movePlayer(dx, dy) {
 
     // 找到是誰位於下一個位置，記錄下來(這邊用傳參考的方式，所以修改 firstBox 也會修改到原始值)
     const hasBox = boxes.find(box => box.x === nextX && box.y === nextY);
+    const hasBomb = bombs.some(bomb => bomb.x === nextX && bomb.y === nextY);
+
+    // 玩家可以離開剛放下炸彈的格子，但不能再走進任何炸彈格。
+    if (hasBomb) {
+        return;
+    }
 
     // 前面沒有箱子
     if (!hasBox) {
@@ -228,11 +234,11 @@ function moveEnemy(map, boxes, enemy, player,bombs,explodeCells) {
 
     // 計算並重新賦予座標
     if (enemy === enemy1) {
-        enemy1 = pickNextEnemy1(map, boxes, enemy1);
+        enemy1 = pickNextEnemy1(map, boxes, enemy1, bombs);
     }
 
     if (enemy === enemy2) {
-        enemy2 = pickNextEnemy2(map, boxes, enemy2, player);
+        enemy2 = pickNextEnemy2(map, boxes, enemy2, player, bombs);
     }
 
     if (enemy === enemy3) {
@@ -240,7 +246,7 @@ function moveEnemy(map, boxes, enemy, player,bombs,explodeCells) {
     }
 }
 
-function pickNextEnemy1(map, boxes, enemy) {
+function pickNextEnemy1(map, boxes, enemy, bombs = []) {
     const enemyX = enemy.x;
     const enemyY = enemy.y;
     let allowCell = [];
@@ -259,17 +265,22 @@ function pickNextEnemy1(map, boxes, enemy) {
         const thisY = surroundingCells[i].y;
         const isWall = map[thisY][thisX] === '#';
         const isBox = boxes.find(box => box.x === thisX && box.y === thisY);
+        const isBomb = bombs.some(bomb => bomb.x === thisX && bomb.y === thisY);
 
-        if (!isWall && !isBox) {
+        if (!isWall && !isBox && !isBomb) {
             allowCell.push(surroundingCells[i])
         }
+    }
+
+    if (allowCell.length === 0) {
+        return { ...enemy };
     }
 
     const randomIndex = Math.floor(Math.random() * allowCell.length);
     return { ...allowCell[randomIndex], live: enemy.live };
 }
 
-function pickNextEnemy2(map, boxes, enemy, target) {
+function pickNextEnemy2(map, boxes, enemy, target, bombs = []) {
     // queue 內除了目前座標，也記錄從 enemy 出發時走的第一步
     const queue = [{ x: enemy.x, y: enemy.y, firstStep: null }];
     const visited = new Set([`${enemy.x},${enemy.y}`]);
@@ -303,8 +314,9 @@ function pickNextEnemy2(map, boxes, enemy, target) {
 
             const isWall = map[cell.y][cell.x] === '#';
             const isBox = boxes.some(box => box.x === cell.x && box.y === cell.y);
+            const isBomb = bombs.some(bomb => bomb.x === cell.x && bomb.y === cell.y);
 
-            if (isWall || isBox) {
+            if (isWall || isBox || isBomb) {
                 continue;
             }
 
@@ -396,8 +408,9 @@ function pickNextEnemy3(map, boxes, enemy, target, bombs = [], explodeCells = []
 
             const isWall = map[cell.y][cell.x] === '#';
             const isBox = boxes.some(box => box.x === cell.x && box.y === cell.y);
+            const isBomb = bombs.some(bomb => bomb.x === cell.x && bomb.y === cell.y);
 
-            if (isWall || isBox) {
+            if (isWall || isBox || isBomb) {
                 continue;
             }
 
