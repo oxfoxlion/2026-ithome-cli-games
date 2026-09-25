@@ -5,10 +5,11 @@ const games = [
 ]
 
 // 畫面高度
-const height = games.length;
+const height = games.length +1;
 
 // 當前關注項目
 let focus = 1;
+let guideline = `上下：選擇遊戲 Enter：進入遊戲`
 
 // 改變 focus
 function changeFocus(num) {
@@ -40,15 +41,16 @@ function render() {
         } else {
             row += `${game.id} ${game.name}`;
         }
-
-
-
         frame += row + '\n'
 
     }
 
+
+    frame += guideline+'\n';
+
     // 印出來看看結果
     process.stdout.write(`\x1b[${height}A`);
+    process.stdout.write('\x1b[J')
     process.stdout.write(frame);
 
 }
@@ -70,12 +72,19 @@ process.stdin.on('data', (key) => {
 
     // 如果按下字母 'q' 或是 'Q'，就回到遊戲
     if (key === 'q' || key === 'Q') {
-        // 回到遊戲
+        guideline = `上下：選擇遊戲 Enter：進入遊戲`;
     }
 
     // 如果按下 Ctrl + C 就強制退出遊戲
     if (key === '\x03') {
         process.exit();
+    }
+
+    // Enter
+    if (key === '\r' || key === '\n') {
+        // 進入選擇的遊戲
+        const gameName = games.find(game => game.id === focus).name;
+        guideline = `你選擇的是 ${gameName}`;
     }
 
     // 上方向鍵
