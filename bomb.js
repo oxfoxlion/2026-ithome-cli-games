@@ -84,9 +84,9 @@ function createBoxes(map, boxesNum, occupied = []) {
 function render() {
 
     if(
-        (player.x=== enemy1.x && player.y === enemy1.y) || 
-        (player.x=== enemy2.x && player.y === enemy2.y) || 
-        (player.x=== enemy3.x && player.y === enemy3.y)
+        (enemy1.live && player.x === enemy1.x && player.y === enemy1.y) ||
+        (enemy2.live && player.x === enemy2.x && player.y === enemy2.y) ||
+        (enemy3.live && player.x === enemy3.x && player.y === enemy3.y)
     ) {
         HP -= 1;
     }
@@ -239,6 +239,10 @@ function explodeBomb(map, bomb) {
 }
 
 function moveEnemy(map, boxes, enemy, player,bombs,explodeCells) {
+    // 已死亡的敵人不再移動，也不再參與後續遊戲邏輯。
+    if (!enemy.live) {
+        return;
+    }
 
     // 計算並重新賦予座標
     if (enemy === enemy1) {
