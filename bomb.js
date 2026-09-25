@@ -212,20 +212,20 @@ function explodeBomb(map, bombX, bombY) {
     setTimeout(() => render(), 1000);
 }
 
-function moveEnemy(map, boxes, enemy, player) {
+function moveEnemy(map, boxes, enemy, player,bombs,explodeCells) {
 
     // 計算並重新賦予座標
-    // if (enemy === enemy1) {
-    //     enemy1 = pickNextEnemy1(map, boxes, enemy1);
-    // }
+    if (enemy === enemy1) {
+        enemy1 = pickNextEnemy1(map, boxes, enemy1);
+    }
 
     if (enemy === enemy2) {
         enemy2 = pickNextEnemy2(map, boxes, enemy2, player);
     }
 
-    // if (enemy === enemy3) {
-    //     enemy3 = pickNextEnemy1(map, boxes, enemy3);
-    // }
+    if (enemy === enemy3) {
+        enemy3 = pickNextEnemy3(map, boxes, enemy3, player,bombs,explodeCells);
+    }
 }
 
 function pickNextEnemy1(map, boxes, enemy) {
@@ -307,6 +307,107 @@ function pickNextEnemy2(map, boxes, enemy, target) {
     // 找不到通往玩家的路徑時，enemy2 留在原地
     return { ...enemy };
 }
+
+function pickNextEnemy3(map, boxes, enemy, target, bombs = [], explodeCells = []) {
+    const startKey = `${enemy.x},${enemy.y}`;
+    const targetKey = `${target.x},${target.y}`;
+    const distances = new Map([[startKey, 0]]);
+    const firstSteps = new Map([[startKey, null]]);
+    const visited = new Set();
+    const queue = [{ x: enemy.x, y: enemy.y, distance: 0 }];
+
+    // 炸彈所在格及上下左右是即將爆炸的危險區域。
+    const dangerCells = new Set(
+        explodeCells.map(cell => `${cell.x},${cell.y}`)
+    );
+
+    for (const bomb of bombs) {
+        const blastCells = [
+            { x: bomb.x, y: bomb.y },
+            { x: bomb.x - 1, y: bomb.y },
+            { x: bomb.x + 1, y: bomb.y },
+            { x: bomb.x, y: bomb.y - 1 },
+            { x: bomb.x, y: bomb.y + 1 },
+        ];
+
+        for (const cell of blastCells) {
+            const isInsideMap =
+                cell.y >= 0 && cell.y < map.length &&
+                cell.x >= 0 && cell.x < map[cell.y].length;
+
+            if (isInsideMap && map[cell.y][cell.x] !== '#') {
+                dangerCells.add(`${cell.x},${cell.y}`);
+            }
+        }
+    }
+
+    while (queue.length > 0) {
+        // 取出目前距離最短的節點，這是 Dijkstra 的核心步驟。
+        let nearestIndex = 0;
+        for (let i = 1; i < queue.length; i++) {
+            if (queue[i].distance < queue[nearestIndex].distance) {
+                nearestIndex = i;
+            }
+        }
+
+        const current = queue.splice(nearestIndex, 1)[0];
+        const currentKey = `${current.x},${current.y}`;
+
+        if (visited.has(currentKey)) {
+            continue;
+        }
+        visited.add(currentKey);
+
+        if (currentKey === targetKey) {
+            const firstStep = firstSteps.get(currentKey);
+            return firstStep
+                ? { ...firstStep, live: enemy.live }
+                : { ...enemy };
+        }
+
+        const surroundingCells = [
+            { x: current.x - 1, y: current.y },
+            { x: current.x + 1, y: current.y },
+            { x: current.x, y: current.y - 1 },
+            { x: current.x, y: current.y + 1 },
+        ];
+
+        for (const cell of surroundingCells) {
+            const cellKey = `${cell.x},${cell.y}`;
+            const isOutsideMap =
+                cell.y < 0 || cell.y >= map.length ||
+                cell.x < 0 || cell.x >= map[cell.y].length;
+
+            if (isOutsideMap || visited.has(cellKey)) {
+                continue;
+            }
+
+            const isWall = map[cell.y][cell.x] === '#';
+            const isBox = boxes.some(box => box.x === cell.x && box.y === cell.y);
+
+            if (isWall || isBox) {
+                continue;
+            }
+
+            // 一般格成本為 1；危險格提高成本，讓 enemy 優先繞路。
+            const moveCost = dangerCells.has(cellKey) ? 50 : 1;
+            const newDistance = current.distance + moveCost;
+
+            if (newDistance < (distances.get(cellKey) ?? Infinity)) {
+                distances.set(cellKey, newDistance);
+                firstSteps.set(
+                    cellKey,
+                    firstSteps.get(currentKey) || { x: cell.x, y: cell.y }
+                );
+                queue.push({ ...cell, distance: newDistance });
+            }
+        }
+    }
+
+    // 找不到通往玩家的路徑時，enemy 留在原地。
+    return { ...enemy };
+}
+
 // -----------工具區結束
 // -----------邏輯區開始
 
@@ -375,9 +476,9 @@ process.stdin.on('data', (key) => {
 
 // 敵人移動
 setInterval(() => {
-    moveEnemy(map, boxes, enemy1, player);
-    moveEnemy(map, boxes, enemy2, player);
-    moveEnemy(map, boxes, enemy3, player);
+    moveEnemy(map, boxes, enemy1, player, bombs, explodeCells);
+    moveEnemy(map, boxes, enemy2, player, bombs, explodeCells);
+    moveEnemy(map, boxes, enemy3, player, bombs, explodeCells);
 
     // 渲染
     render();

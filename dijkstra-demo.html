@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dijkstra 避險路徑實驗桌</title>
+  <style>
+    :root {
+      --ink: #152537;
+      --muted: #647386;
+      --paper: #eef4f7;
+      --panel: #ffffff;
+      --line: #cbd7df;
+      --wall: #263746;
+      --danger: #f24c3d;
+      --danger-soft: #ffe0da;
+      --safe: #158f83;
+      --left: #d87331;
+      --down: #268a62;
+      --right: #286fc2;
+      --up: #7a53b6;
+      --focus: #125f91;
+      --shadow: 0 20px 60px rgba(27, 57, 76, .14);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(rgba(29, 86, 112, .06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(29, 86, 112, .06) 1px, transparent 1px),
+        var(--paper);
+      background-size: 24px 24px;
+      font-family: "Noto Sans TC", "PingFang TC", system-ui, sans-serif;
+    }
+
+    button, select { font: inherit; }
+    code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    .page { width: min(1240px, calc(100% - 32px)); margin: auto; padding: 38px 0 54px; }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 28px;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      margin: 0 0 7px;
+      color: var(--focus);
+      font: 800 12px/1.2 ui-monospace, monospace;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    h1 { margin: 0; font-size: clamp(31px, 5vw, 57px); line-height: .98; letter-spacing: -.055em; }
+    .intro { max-width: 470px; margin: 0; color: var(--muted); font-size: 15px; line-height: 1.7; }
+
+    .workbench {
+      display: grid;
+      grid-template-columns: minmax(500px, 1.15fr) minmax(390px, .85fr);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .map-side { padding: 25px; }
+    .status-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 50px;
+      margin-bottom: 18px;
+      padding: 9px 12px 9px 16px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #f8fbfc;
+    }
+
+    .status-copy { min-width: 0; }
+    .status-copy strong { display: block; font-size: 14px; }
+    .status-copy span { color: var(--muted); font-size: 12px; }
+    .counter { flex: none; padding: 7px 10px; border-radius: 7px; color: #fff; background: var(--ink); font: 700 12px/1 ui-monospace, monospace; }
+
+    .board-wrap {
+      display: grid;
+      grid-template-columns: 25px 1fr;
+      grid-template-rows: 25px 1fr;
+      gap: 7px;
+      width: min(100%, 670px);
+      margin: auto;
+    }
+
+    .x-labels, .y-labels { color: var(--muted); font: 600 12px/1 ui-monospace, monospace; }
+    .x-labels { display: grid; grid-template-columns: repeat(7, 1fr); grid-column: 2; }
+    .x-labels span { text-align: center; }
+    .y-labels { display: grid; grid-template-rows: repeat(6, 1fr); grid-row: 2; }
+    .y-labels span { display: grid; place-items: center; }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      grid-template-rows: repeat(6, 1fr);
+      grid-column: 2;
+      grid-row: 2;
+      aspect-ratio: 7 / 6;
+      border: 2px solid var(--wall);
+      background: #fff;
+    }
+
+    .cell {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-width: 0;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      transition: background .25s, transform .25s, box-shadow .25s;
+    }
+
+    .cell:nth-child(7n) { border-right: 0; }
+    .cell.wall { color: #fff; background: var(--wall); }
+    .wall-mark { font-size: clamp(12px, 2vw, 17px); font-weight: 900; letter-spacing: .08em; }
+    .cell.danger:not(.wall) { background: repeating-linear-gradient(135deg, var(--danger-soft) 0 8px, #fff3f0 8px 16px); }
+    .cell.frontier { box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--branch) 58%, white); }
+    .cell.visited { background: color-mix(in srgb, var(--branch) 12%, white); }
+    .cell.current { z-index: 3; transform: scale(.9); box-shadow: inset 0 0 0 4px var(--branch, var(--focus)), 0 4px 13px rgba(21, 37, 55, .2); }
+    .cell.found { animation: found .65s ease both; box-shadow: inset 0 0 0 4px var(--safe); }
+    @keyframes found { 50% { transform: scale(1.12) rotate(-2deg); } }
+
+    .entity {
+      z-index: 2;
+      display: grid;
+      place-items: center;
+      width: 48%;
+      aspect-ratio: 1;
+      border: 2px solid currentColor;
+      border-radius: 50%;
+      background: #fff;
+      font: 900 clamp(14px, 2.7vw, 25px)/1 ui-monospace, monospace;
+    }
+    .entity.player { border-radius: 5px 5px 50% 50%; }
+    .entity.bomb { color: #fff; border-color: var(--danger); background: var(--danger); font-size: clamp(11px, 2vw, 18px); }
+
+    .distance {
+      position: absolute;
+      top: 4px;
+      left: 5px;
+      min-width: 19px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      color: #fff;
+      background: var(--branch, var(--ink));
+      font: 800 clamp(8px, 1.25vw, 11px)/1 ui-monospace, monospace;
+    }
+    .first-step { position: absolute; right: 5px; bottom: 3px; color: var(--branch); font: 900 clamp(11px, 1.8vw, 17px)/1 monospace; }
+    .cost-tag { position: absolute; left: 4px; bottom: 3px; color: var(--danger); font: 800 clamp(7px, 1.15vw, 10px)/1 monospace; }
+
+    .control-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 21px; padding-left: 32px; }
+    .control-row button, .speed { min-height: 40px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    .control-row button { padding: 0 15px; cursor: pointer; font-weight: 750; }
+    .control-row button.primary { color: #fff; border-color: var(--focus); background: var(--focus); }
+    .control-row button:disabled { cursor: not-allowed; opacity: .4; }
+    .control-row button:focus-visible, select:focus-visible { outline: 3px solid #8dc7e5; outline-offset: 2px; }
+    .speed { margin-left: auto; padding: 0 8px; color: var(--muted); }
+
+    .data-side { display: flex; flex-direction: column; min-width: 0; border-left: 1px solid var(--line); background: #f5f9fb; }
+    .data-block { padding: 20px 22px; border-bottom: 1px solid var(--line); }
+    .data-block h2 { margin: 0 0 10px; font-size: 12px; letter-spacing: .09em; text-transform: uppercase; }
+
+    .queue { display: flex; gap: 7px; min-height: 56px; overflow-x: auto; padding: 3px 1px 8px; }
+    .queue::before { align-self: center; content: "最小值 →"; flex: none; color: var(--muted); font: 700 10px/1 monospace; }
+    .queue-item { flex: none; min-width: 70px; padding: 7px 8px; border-top: 3px solid var(--branch, var(--ink)); border-radius: 5px; background: #fff; box-shadow: 0 2px 8px rgba(20, 32, 48, .08); font: 700 11px/1.3 monospace; animation: enter .25s ease both; }
+    .queue-item small { display: block; color: var(--muted); font-weight: 500; }
+    @keyframes enter { from { opacity: 0; transform: translateX(10px); } }
+    .empty { align-self: center; color: var(--muted); font-size: 13px; }
+
+    .current-readout { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    .current-readout span { color: var(--muted); font-size: 12px; font-weight: 700; }
+    .current-readout code { color: var(--focus); font-size: 13px; font-weight: 850; }
+
+    .maps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .map-card { min-width: 0; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+    .map-card h3 { margin: 0 0 7px; color: var(--muted); font-size: 11px; }
+    .map-list { display: flex; flex-wrap: wrap; gap: 4px; max-height: 94px; overflow: auto; }
+    .map-entry { padding: 3px 5px; border-radius: 4px; background: #edf3f6; font: 700 10px/1.2 monospace; }
+
+    .code-line { margin: 0; padding: 12px 13px; border-radius: 8px; color: #dce9ef; background: var(--ink); font: 12px/1.6 ui-monospace, monospace; white-space: pre-wrap; }
+    .explanation { min-height: 60px; margin: 0; color: #3d4d5e; font-size: 13px; line-height: 1.65; }
+    .legend { display: flex; flex-wrap: wrap; gap: 9px 13px; margin-top: 9px; }
+    .legend span { color: var(--muted); font-size: 11px; }
+    .legend i { display: inline-block; width: 9px; height: 9px; margin-right: 5px; border-radius: 50%; background: var(--color); }
+
+    .answer { display: none; margin-top: auto; padding: 21px 22px; color: #fff; background: var(--safe); }
+    .answer.show { display: block; animation: rise .45s ease both; }
+    .answer small { display: block; margin-bottom: 4px; font-weight: 750; opacity: .8; }
+    .answer strong { font-size: 23px; letter-spacing: -.025em; }
+    .answer p { margin: 7px 0 0; font-size: 12px; line-height: 1.55; }
+    @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+
+    @media (max-width: 900px) {
+      header { display: block; }
+      .intro { margin-top: 14px; }
+      .workbench { grid-template-columns: 1fr; }
+      .data-side { border-top: 1px solid var(--line); border-left: 0; }
+      .control-row { padding-left: 0; }
+    }
+    @media (max-width: 520px) {
+      .page { width: min(100% - 18px, 1240px); padding-top: 23px; }
+      .map-side, .data-block { padding: 16px; }
+      .wall-mark { font-size: 9px; }
+      .speed { width: 100%; margin-left: 0; }
+      .maps { grid-template-columns: 1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <div>
+        <p class="eyebrow">Dijkstra / 實驗 02</p>
+        <h1>近路有炸彈，還走嗎？</h1>
+      </div>
+      <p class="intro">沿用 BFS 的地圖。普通格成本是 1，炸彈與爆炸範圍成本是 50；Dijkstra 每次取出累積成本最低的格子，讓 E 找到通往 P 的低風險路線。</p>
+    </header>
+
+    <section class="workbench" aria-label="Dijkstra 動畫示範">
+      <div class="map-side">
+        <div class="status-strip" aria-live="polite">
+          <div class="status-copy"><strong id="statusTitle">準備搜尋</strong><span id="statusDetail">按下「播放」或「下一步」開始。</span></div>
+          <span class="counter" id="counter">00 / 00</span>
+        </div>
+        <div class="board-wrap">
+          <div class="x-labels" aria-hidden="true"></div>
+          <div class="y-labels" aria-hidden="true"></div>
+          <div class="board" id="board" aria-label="7 欄 6 列的 Dijkstra 搜尋地圖"></div>
+        </div>
+        <div class="control-row">
+          <button class="primary" id="playButton" type="button">▶ 播放</button>
+          <button id="nextButton" type="button">下一步</button>
+          <button id="resetButton" type="button">重來</button>
+          <select class="speed" id="speedSelect" aria-label="播放速度">
+            <option value="1300">慢速</option>
+            <option value="800" selected>一般速度</option>
+            <option value="400">快速</option>
+          </select>
+        </div>
+      </div>
+
+      <aside class="data-side">
+        <div class="data-block">
+          <h2>Queue · 每次挑距離最小者</h2>
+          <div class="queue" id="queueView" aria-live="polite"></div>
+          <div class="current-readout">
+            <span>目前處理 current</span><code id="currentView">尚未取出</code>
+            <span>累積成本</span><code id="costView">—</code>
+          </div>
+        </div>
+        <div class="data-block">
+          <h2>兩張 Map 此刻的內容</h2>
+          <div class="maps">
+            <div class="map-card"><h3>distances</h3><div class="map-list" id="distanceMap"></div></div>
+            <div class="map-card"><h3>firstSteps</h3><div class="map-list" id="firstStepMap"></div></div>
+          </div>
+        </div>
+        <div class="data-block">
+          <h2>此刻執行</h2>
+          <pre class="code-line" id="codeLine">distances.set("3,1", 0)</pre>
+        </div>
+        <div class="data-block">
+          <h2>為什麼這樣做？</h2>
+          <p class="explanation" id="explanation">起點距離是 0；其他尚未發現的格子視為 Infinity。</p>
+          <div class="legend">
+            <span><i style="--color:var(--danger)"></i>危險格 +50</span>
+            <span><i style="--color:var(--safe)"></i>普通格 +1</span>
+            <span><i style="--color:var(--right)"></i>箭頭＝firstStep</span>
+          </div>
+        </div>
+        <div class="answer" id="answer" aria-live="assertive">
+          <small>LOWEST-COST FIRST STEP</small>
+          <strong>答案：先向右，避開炸彈</strong>
+          <p>安全繞路總成本為 9；左側近路雖然步數少，但一踏入危險區成本就至少增加 50。</p>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const WIDTH = 7;
+    const HEIGHT = 6;
+    const START = { x: 3, y: 1 };
+    const TARGET = { x: 1, y: 4 };
+    const BOMB = { x: 2, y: 2 };
+    const interiorWalls = new Set(['4,2', '2,3']);
+    const dangerCells = new Set(['2,2', '1,2', '3,2', '2,1', '2,3']);
+    const directions = [
+      { dx: -1, dy: 0, name: '左', arrow: '←', color: 'var(--left)' },
+      { dx: 1, dy: 0, name: '右', arrow: '→', color: 'var(--right)' },
+      { dx: 0, dy: -1, name: '上', arrow: '↑', color: 'var(--up)' },
+      { dx: 0, dy: 1, name: '下', arrow: '↓', color: 'var(--down)' }
+    ];
+
+    const keyOf = ({ x, y }) => `${x},${y}`;
+    const isWall = (x, y) => x === 0 || x === WIDTH - 1 || y === 0 || y === HEIGHT - 1 || interiorWalls.has(`${x},${y}`);
+    const cloneMap = map => new Map([...map].map(([key, value]) => [key, value && typeof value === 'object' ? { ...value } : value]));
+    function stepDirection(step) {
+      if (!step) return null;
+      return directions.find(direction =>
+        START.x + direction.dx === step.x && START.y + direction.dy === step.y
+      );
+    }
+    const directionColor = step => stepDirection(step)?.color || 'var(--ink)';
+
+    function snapshot({ queue, visited, distances, firstSteps, current = null, title, detail, code, explanation, found = false }) {
+      return {
+        queue: queue.map(item => ({ ...item })),
+        visited: new Set(visited),
+        distances: cloneMap(distances),
+        firstSteps: cloneMap(firstSteps),
+        current: current ? { ...current } : null,
+        title, detail, code, explanation, found
+      };
+    }
+
+    function buildDijkstraFrames() {
+      const startKey = keyOf(START);
+      const targetKey = keyOf(TARGET);
+      const distances = new Map([[startKey, 0]]);
+      const firstSteps = new Map([[startKey, null]]);
+      const visited = new Set();
+      const queue = [{ ...START, distance: 0 }];
+      const frames = [snapshot({
+        queue, visited, distances, firstSteps,
+        title: '準備搜尋', detail: 'E 以成本 0 進入 queue。',
+        code: 'distances.set("3,1", 0)\nfirstSteps.set("3,1", null)',
+        explanation: '起點距離是 0；其他尚未發現的格子視為 Infinity。'
+      })];
+
+      while (queue.length) {
+        let nearestIndex = 0;
+        for (let i = 1; i < queue.length; i++) {
+          if (queue[i].distance < queue[nearestIndex].distance) nearestIndex = i;
+        }
+        const current = queue.splice(nearestIndex, 1)[0];
+        const currentKey = keyOf(current);
+
+        if (visited.has(currentKey)) {
+          frames.push(snapshot({
+            queue, visited, distances, firstSteps, current,
+            title: `略過舊紀錄 ${currentKey}`, detail: '這格已用更低成本處理過。',
+            code: 'if (visited.has(currentKey)) continue',
+            explanation: 'queue 可能保留同一格較舊、較貴的紀錄；visited 讓它直接被略過。'
+          }));
+          continue;
+        }
+
+        visited.add(currentKey);
+        frames.push(snapshot({
+          queue, visited, distances, firstSteps, current,
+          title: `取出成本最小的 (${currentKey})`, detail: `成本 ${current.distance} 正式確定，加入 visited。`,
+          code: `current = queue.splice(${nearestIndex}, 1)[0]\nvisited.add("${currentKey}")`,
+          explanation: '因為所有移動成本都是正數，queue 中最小的項目被取出時，它的最低成本已經確定。'
+        }));
+
+        if (currentKey === targetKey) {
+          frames.push(snapshot({
+            queue, visited, distances, firstSteps, current, found: true,
+            title: '抵達玩家 P', detail: `最低總成本是 ${current.distance}。`,
+            code: 'return firstSteps.get(targetKey) // 向右',
+            explanation: 'P 的 firstStep 是向右；Enemy 只需要走這一步，不必一次走完整條路。'
+          }));
+          break;
+        }
+
+        const updates = [];
+        for (const direction of directions) {
+          const cell = { x: current.x + direction.dx, y: current.y + direction.dy };
+          const cellKey = keyOf(cell);
+          if (isWall(cell.x, cell.y) || visited.has(cellKey)) continue;
+          const moveCost = dangerCells.has(cellKey) ? 50 : 1;
+          const newDistance = current.distance + moveCost;
+          const oldDistance = distances.get(cellKey) ?? Infinity;
+          if (newDistance < oldDistance) {
+            distances.set(cellKey, newDistance);
+            const inherited = firstSteps.get(currentKey);
+            firstSteps.set(cellKey, inherited || { x: cell.x, y: cell.y });
+            queue.push({ ...cell, distance: newDistance });
+            updates.push(`${cellKey}: ${oldDistance === Infinity ? '∞' : oldDistance}→${newDistance}${moveCost === 50 ? '（危險）' : ''}`);
+          }
+        }
+
+        frames.push(snapshot({
+          queue, visited, distances, firstSteps, current,
+          title: updates.length ? `更新 ${updates.length} 個鄰居` : '沒有更便宜的鄰居',
+          detail: updates.length ? updates.join('；') : '牆壁、visited 或既有成本擋住了更新。',
+          code: updates.length
+            ? 'if (newDistance < oldDistance) {\n  distances.set(cellKey, newDistance)\n  firstSteps.set(cellKey, inheritedFirstStep)\n}'
+            : '// 沒有 distances 項目需要更新',
+          explanation: updates.length
+            ? '格子可以先被發現，再由更便宜的路徑覆寫；firstSteps 也要同步改成新路線的第一步。'
+            : '只有成本真的變小才更新 Map，否則保留目前已知的最佳路線。'
+        }));
+      }
+      return frames;
+    }
+
+    const frames = buildDijkstraFrames();
+    let frameIndex = 0;
+    let timer = null;
+    const board = document.querySelector('#board');
+    const queueView = document.querySelector('#queueView');
+    const statusTitle = document.querySelector('#statusTitle');
+    const statusDetail = document.querySelector('#statusDetail');
+    const counter = document.querySelector('#counter');
+    const currentView = document.querySelector('#currentView');
+    const costView = document.querySelector('#costView');
+    const distanceMap = document.querySelector('#distanceMap');
+    const firstStepMap = document.querySelector('#firstStepMap');
+    const codeLine = document.querySelector('#codeLine');
+    const explanation = document.querySelector('#explanation');
+    const answer = document.querySelector('#answer');
+    const playButton = document.querySelector('#playButton');
+    const nextButton = document.querySelector('#nextButton');
+    const resetButton = document.querySelector('#resetButton');
+    const speedSelect = document.querySelector('#speedSelect');
+
+    document.querySelector('.x-labels').innerHTML = Array.from({ length: WIDTH }, (_, i) => `<span>${i}</span>`).join('');
+    document.querySelector('.y-labels').innerHTML = Array.from({ length: HEIGHT }, (_, i) => `<span>${i}</span>`).join('');
+
+    for (let y = 0; y < HEIGHT; y++) {
+      for (let x = 0; x < WIDTH; x++) {
+        const cell = document.createElement('div');
+        const key = `${x},${y}`;
+        cell.className = `cell${isWall(x, y) ? ' wall' : ''}${dangerCells.has(key) ? ' danger' : ''}`;
+        cell.dataset.key = key;
+        if (isWall(x, y)) cell.innerHTML = '<span class="wall-mark">#</span>';
+        if (x === START.x && y === START.y) cell.innerHTML = '<span class="entity">E</span>';
+        if (x === TARGET.x && y === TARGET.y) cell.innerHTML = '<span class="entity player">P</span>';
+        if (x === BOMB.x && y === BOMB.y) cell.innerHTML = '<span class="entity bomb">●</span>';
+        if (dangerCells.has(key) && !isWall(x, y)) cell.insertAdjacentHTML('beforeend', '<span class="cost-tag">+50</span>');
+        board.append(cell);
+      }
+    }
+
+    function renderMapEntries(map, formatter) {
+      return [...map.entries()]
+        .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+        .map(([key, value]) => `<span class="map-entry">${key}: ${formatter(value)}</span>`).join('');
+    }
+
+    function render() {
+      const frame = frames[frameIndex];
+      document.querySelectorAll('.cell').forEach(cell => {
+        cell.classList.remove('frontier', 'visited', 'current', 'found');
+        cell.style.removeProperty('--branch');
+        cell.querySelector('.distance')?.remove();
+        cell.querySelector('.first-step')?.remove();
+      });
+
+      const frontierKeys = new Set(frame.queue.map(keyOf));
+      frame.distances.forEach((distance, key) => {
+        const cell = document.querySelector(`[data-key="${key}"]`);
+        if (!cell) return;
+        const step = frame.firstSteps.get(key);
+        const color = directionColor(step);
+        cell.style.setProperty('--branch', color);
+        if (frame.visited.has(key)) cell.classList.add('visited');
+        else if (frontierKeys.has(key)) cell.classList.add('frontier');
+        cell.insertAdjacentHTML('beforeend', `<span class="distance">${distance}</span>`);
+        const stepVisual = stepDirection(step);
+        if (stepVisual) cell.insertAdjacentHTML('beforeend', `<span class="first-step" title="第一步：${stepVisual.name}">${stepVisual.arrow}</span>`);
+      });
+
+      if (frame.current) {
+        const currentCell = document.querySelector(`[data-key="${keyOf(frame.current)}"]`);
+        currentCell?.classList.add('current');
+        if (frame.found) currentCell?.classList.add('found');
+      }
+
+      const sortedQueue = [...frame.queue].sort((a, b) => a.distance - b.distance);
+      queueView.innerHTML = sortedQueue.length
+        ? sortedQueue.map(item => {
+            const step = frame.firstSteps.get(keyOf(item));
+            return `<div class="queue-item" style="--branch:${directionColor(step)}">(${item.x},${item.y})<small>distance: ${item.distance}</small></div>`;
+          }).join('')
+        : '<span class="empty">queue 目前是空的</span>';
+
+      currentView.textContent = frame.current ? `(${frame.current.x}, ${frame.current.y})` : '尚未取出';
+      costView.textContent = frame.current ? frame.current.distance : '—';
+      distanceMap.innerHTML = renderMapEntries(frame.distances, value => value);
+      firstStepMap.innerHTML = renderMapEntries(
+        frame.firstSteps,
+        value => value ? `{ x: ${value.x}, y: ${value.y} }` : 'null'
+      );
+      statusTitle.textContent = frame.title;
+      statusDetail.textContent = frame.detail;
+      codeLine.textContent = frame.code;
+      explanation.textContent = frame.explanation;
+      counter.textContent = `${String(frameIndex).padStart(2, '0')} / ${String(frames.length - 1).padStart(2, '0')}`;
+      answer.classList.toggle('show', frame.found);
+      nextButton.disabled = frameIndex === frames.length - 1;
+    }
+
+    function stop() {
+      clearInterval(timer);
+      timer = null;
+      playButton.textContent = '▶ 播放';
+    }
+
+    function play() {
+      if (timer) { stop(); return; }
+      if (frameIndex === frames.length - 1) frameIndex = 0;
+      playButton.textContent = 'Ⅱ 暫停';
+      timer = setInterval(() => {
+        if (frameIndex >= frames.length - 1) { stop(); return; }
+        frameIndex++;
+        render();
+      }, Number(speedSelect.value));
+      render();
+    }
+
+    playButton.addEventListener('click', play);
+    nextButton.addEventListener('click', () => { stop(); frameIndex = Math.min(frameIndex + 1, frames.length - 1); render(); });
+    resetButton.addEventListener('click', () => { stop(); frameIndex = 0; render(); });
+    speedSelect.addEventListener('change', () => { if (timer) { stop(); play(); } });
+    render();
+  </script>
+</body>
+</html>
