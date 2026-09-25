@@ -83,6 +83,15 @@ function createBoxes(map, boxesNum, occupied = []) {
 //渲染畫面
 function render() {
 
+    if(
+        (player.x=== enemy1.x && player.y === enemy1.y) || 
+        (player.x=== enemy2.x && player.y === enemy2.y) || 
+        (player.x=== enemy3.x && player.y === enemy3.y)
+    ) {
+        HP -= 1;
+    }
+
+    // 原本的渲染邏輯
     let frame = ''
 
     for (let y = 0; y < map.length; y++) {
@@ -118,6 +127,17 @@ function render() {
     process.stdout.write(`\x1b[${map.length + 1}A`); // 加上儀表板這一行也要一起重新渲染
     process.stdout.write(`\x1b[31mHP:${HP}\x1b[35m 敵人:${enemyNum}\x1b[0m\n`); // 儀表版
     process.stdout.write(frame); // 印出畫面
+ 
+    // 勝負判定
+    if (HP <= 0) {
+        process.stdout.write("\n失去所有HP，遊戲結束\n");
+        process.exit();
+    }
+
+    if (enemyNum <= 0) {
+        process.stdout.write("\n所有敵人都被消滅，恭喜獲勝\n");
+        process.exit();
+    }
 
 }
 
@@ -176,11 +196,6 @@ function explodeBomb(map, bombX, bombY) {
         HP -= 1;
     }
 
-    if (HP <= 0) {
-        process.stdout.write("\n失去所有HP，遊戲結束\n");
-        process.exit();
-    }
-
     // 有敵人的處理
     const hasEnemy1 = surroundingCells.find(cell => cell.x === enemy1.x && cell.y === enemy1.y);
     const hasEnemy2 = surroundingCells.find(cell => cell.x === enemy2.x && cell.y === enemy2.y);
@@ -194,11 +209,7 @@ function explodeBomb(map, bombX, bombY) {
     if (hasEnemy3) {
         enemy3.live = false;
     }
-    enemyNum = enemies.filter(enemy => enemy.live === true).length;
-    if (enemyNum <= 0) {
-        process.stdout.write("\n所有敵人都被消滅，恭喜獲勝\n");
-        process.exit();
-    }
+    enemyNum = [enemy1, enemy2, enemy3].filter(enemy => enemy.live === true).length;
 
     // 逐一篩選這顆炸彈的爆炸範圍
     for (let i = 0; i < surroundingCells.length; i++) {
