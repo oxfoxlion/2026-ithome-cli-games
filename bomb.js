@@ -83,15 +83,6 @@ function createBoxes(map, boxesNum, occupied = []) {
 //渲染畫面
 function render() {
 
-    if(
-        (enemy1.live && player.x === enemy1.x && player.y === enemy1.y) ||
-        (enemy2.live && player.x === enemy2.x && player.y === enemy2.y) ||
-        (enemy3.live && player.x === enemy3.x && player.y === enemy3.y)
-    ) {
-        HP -= 1;
-    }
-
-    // 原本的渲染邏輯
     let frame = ''
 
     for (let y = 0; y < map.length; y++) {
@@ -127,17 +118,6 @@ function render() {
     process.stdout.write(`\x1b[${map.length + 1}A`); // 加上儀表板這一行也要一起重新渲染
     process.stdout.write(`\x1b[31mHP:${HP}\x1b[35m 敵人:${enemyNum}\x1b[0m\n`); // 儀表版
     process.stdout.write(frame); // 印出畫面
- 
-    // 勝負判定
-    if (HP <= 0) {
-        process.stdout.write("\n失去所有HP，遊戲結束\n");
-        process.exit();
-    }
-
-    if (enemyNum <= 0) {
-        process.stdout.write("\n所有敵人都被消滅，恭喜獲勝\n");
-        process.exit();
-    }
 
 }
 
@@ -148,12 +128,6 @@ function movePlayer(dx, dy) {
 
     // 找到是誰位於下一個位置，記錄下來(這邊用傳參考的方式，所以修改 firstBox 也會修改到原始值)
     const hasBox = boxes.find(box => box.x === nextX && box.y === nextY);
-    const hasBomb = bombs.some(bomb => bomb.x === nextX && bomb.y === nextY);
-
-    // 玩家可以離開剛放下炸彈的格子，但不能再走進任何炸彈格。
-    if (hasBomb) {
-        return;
-    }
 
     // 前面沒有箱子
     if (!hasBox) {
@@ -169,21 +143,12 @@ function movePlayer(dx, dy) {
 function putBomb(map) {
     let bombX = player.x;
     let bombY = player.y;
-    const hasBomb = bombs.some(bomb => bomb.x === bombX && bomb.y === bombY);
+    bombs.push({ x: bombX, y: bombY })
 
-    if (hasBomb) {
-        return;
-    }
-
-    const explodeAt = Date.now() + 3000;
-    const bomb = { x: bombX, y: bombY, explodeAt };
-    bombs.push(bomb)
-
-    setTimeout(() => explodeBomb(map, bomb), 3000);
+    setTimeout(() => explodeBomb(map, bombX, bombY), 3000);
 }
 
-function explodeBomb(map, bomb) {
-    const { x: bombX, y: bombY } = bomb;
+function explodeBomb(map, bombX, bombY) {
     // 找出影響範圍座標
     const surroundingCells = [
         { x: bombX, y: bombY },
@@ -211,6 +176,11 @@ function explodeBomb(map, bomb) {
         HP -= 1;
     }
 
+    if (HP <= 0) {
+        process.stdout.write("\n失去所有HP，遊戲結束\n");
+        process.exit();
+    }
+
     // 有敵人的處理
     const hasEnemy1 = surroundingCells.find(cell => cell.x === enemy1.x && cell.y === enemy1.y);
     const hasEnemy2 = surroundingCells.find(cell => cell.x === enemy2.x && cell.y === enemy2.y);
@@ -224,38 +194,33 @@ function explodeBomb(map, bomb) {
     if (hasEnemy3) {
         enemy3.live = false;
     }
-    enemyNum = [enemy1, enemy2, enemy3].filter(enemy => enemy.live === true).length;
+    enemyNum = enemies.filter(enemy => enemy.live === true).length;
+    if (enemyNum <= 0) {
+        process.stdout.write("\n所有敵人都被消滅，恭喜獲勝\n");
+        process.exit();
+    }
 
-    // 爆炸當下破壞範圍內的箱子。
+    // 逐一篩選這顆炸彈的爆炸範圍
     for (let i = 0; i < surroundingCells.length; i++) {
+        explodeCells = explodeCells.filter(cell => cell !== surroundingCells[i]);
         boxes = boxes.filter(box => !(box.x === surroundingCells[i].x && box.y === surroundingCells[i].y));
     }
 
     // 清除炸彈
-    bombs = bombs.filter(item => item !== bomb);
+    bombs = bombs.filter(item => !(item.x === bombX && item.y === bombY));
 
-    // 爆炸效果保留一秒，再只清除這顆炸彈建立的爆炸格。
-    setTimeout(() => {
-        for (let i = 0; i < surroundingCells.length; i++) {
-            explodeCells = explodeCells.filter(cell => cell !== surroundingCells[i]);
-        }
-        render();
-    }, 1000);
+    setTimeout(() => render(), 1000);
 }
 
 function moveEnemy(map, boxes, enemy, player,bombs,explodeCells) {
-    // 已死亡的敵人不再移動，也不再參與後續遊戲邏輯。
-    if (!enemy.live) {
-        return;
-    }
 
     // 計算並重新賦予座標
     if (enemy === enemy1) {
-        enemy1 = pickNextEnemy1(map, boxes, enemy1, bombs);
+        enemy1 = pickNextEnemy1(map, boxes, enemy1);
     }
 
     if (enemy === enemy2) {
-        enemy2 = pickNextEnemy2(map, boxes, enemy2, player, bombs);
+        enemy2 = pickNextEnemy2(map, boxes, enemy2, player);
     }
 
     if (enemy === enemy3) {
@@ -263,7 +228,7 @@ function moveEnemy(map, boxes, enemy, player,bombs,explodeCells) {
     }
 }
 
-function pickNextEnemy1(map, boxes, enemy, bombs = []) {
+function pickNextEnemy1(map, boxes, enemy) {
     const enemyX = enemy.x;
     const enemyY = enemy.y;
     let allowCell = [];
@@ -282,22 +247,17 @@ function pickNextEnemy1(map, boxes, enemy, bombs = []) {
         const thisY = surroundingCells[i].y;
         const isWall = map[thisY][thisX] === '#';
         const isBox = boxes.find(box => box.x === thisX && box.y === thisY);
-        const isBomb = bombs.some(bomb => bomb.x === thisX && bomb.y === thisY);
 
-        if (!isWall && !isBox && !isBomb) {
+        if (!isWall && !isBox) {
             allowCell.push(surroundingCells[i])
         }
-    }
-
-    if (allowCell.length === 0) {
-        return { ...enemy };
     }
 
     const randomIndex = Math.floor(Math.random() * allowCell.length);
     return { ...allowCell[randomIndex], live: enemy.live };
 }
 
-function pickNextEnemy2(map, boxes, enemy, target, bombs = []) {
+function pickNextEnemy2(map, boxes, enemy, target) {
     // queue 內除了目前座標，也記錄從 enemy 出發時走的第一步
     const queue = [{ x: enemy.x, y: enemy.y, firstStep: null }];
     const visited = new Set([`${enemy.x},${enemy.y}`]);
@@ -331,9 +291,8 @@ function pickNextEnemy2(map, boxes, enemy, target, bombs = []) {
 
             const isWall = map[cell.y][cell.x] === '#';
             const isBox = boxes.some(box => box.x === cell.x && box.y === cell.y);
-            const isBomb = bombs.some(bomb => bomb.x === cell.x && bomb.y === cell.y);
 
-            if (isWall || isBox || isBomb) {
+            if (isWall || isBox) {
                 continue;
             }
 
@@ -425,9 +384,8 @@ function pickNextEnemy3(map, boxes, enemy, target, bombs = [], explodeCells = []
 
             const isWall = map[cell.y][cell.x] === '#';
             const isBox = boxes.some(box => box.x === cell.x && box.y === cell.y);
-            const isBomb = bombs.some(bomb => bomb.x === cell.x && bomb.y === cell.y);
 
-            if (isWall || isBox || isBomb) {
+            if (isWall || isBox) {
                 continue;
             }
 
@@ -518,13 +476,6 @@ process.stdin.on('data', (key) => {
 
 // 敵人移動
 setInterval(() => {
-    // 當炸彈已到爆炸時間時，先讓爆炸的 callback 完成傷害判定，
-    // 避免同時到期的敵人移動 callback 先改變敵人位置。
-    const hasDueBomb = bombs.some(bomb => bomb.explodeAt <= Date.now());
-    if (hasDueBomb) {
-        return;
-    }
-
     moveEnemy(map, boxes, enemy1, player, bombs, explodeCells);
     moveEnemy(map, boxes, enemy2, player, bombs, explodeCells);
     moveEnemy(map, boxes, enemy3, player, bombs, explodeCells);
