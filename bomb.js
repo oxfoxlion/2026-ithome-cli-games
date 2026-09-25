@@ -163,7 +163,8 @@ function movePlayer(dx, dy) {
 function putBomb(map) {
     let bombX = player.x;
     let bombY = player.y;
-    bombs.push({ x: bombX, y: bombY })
+    const explodeAt = Date.now() + 3000;
+    bombs.push({ x: bombX, y: bombY, explodeAt })
 
     setTimeout(() => explodeBomb(map, bombX, bombY), 3000);
 }
@@ -487,6 +488,13 @@ process.stdin.on('data', (key) => {
 
 // 敵人移動
 setInterval(() => {
+    // 當炸彈已到爆炸時間時，先讓爆炸的 callback 完成傷害判定，
+    // 避免同時到期的敵人移動 callback 先改變敵人位置。
+    const hasDueBomb = bombs.some(bomb => bomb.explodeAt <= Date.now());
+    if (hasDueBomb) {
+        return;
+    }
+
     moveEnemy(map, boxes, enemy1, player, bombs, explodeCells);
     moveEnemy(map, boxes, enemy2, player, bombs, explodeCells);
     moveEnemy(map, boxes, enemy3, player, bombs, explodeCells);
