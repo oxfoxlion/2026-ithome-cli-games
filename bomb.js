@@ -226,16 +226,21 @@ function explodeBomb(map, bomb) {
     }
     enemyNum = [enemy1, enemy2, enemy3].filter(enemy => enemy.live === true).length;
 
-    // 逐一篩選這顆炸彈的爆炸範圍
+    // 爆炸當下破壞範圍內的箱子。
     for (let i = 0; i < surroundingCells.length; i++) {
-        explodeCells = explodeCells.filter(cell => cell !== surroundingCells[i]);
         boxes = boxes.filter(box => !(box.x === surroundingCells[i].x && box.y === surroundingCells[i].y));
     }
 
     // 清除炸彈
     bombs = bombs.filter(item => item !== bomb);
 
-    setTimeout(() => render(), 1000);
+    // 爆炸效果保留一秒，再只清除這顆炸彈建立的爆炸格。
+    setTimeout(() => {
+        for (let i = 0; i < surroundingCells.length; i++) {
+            explodeCells = explodeCells.filter(cell => cell !== surroundingCells[i]);
+        }
+        render();
+    }, 1000);
 }
 
 function moveEnemy(map, boxes, enemy, player,bombs,explodeCells) {
