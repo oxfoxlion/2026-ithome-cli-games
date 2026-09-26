@@ -87,10 +87,8 @@ process.stdin.on('data', (key) => {
     if (key === '\r' || key === '\n') {
         // 進入選擇的遊戲
         const game = games.find(game => game.id === focus);
-        process.stdout.write(`\x1b[${height}A`);
-        process.stdout.write('\x1b[J')
+        guideline = `你選擇的是 ${game.name}`;
         game.script();
-        return;
     }
 
     // 上方向鍵
