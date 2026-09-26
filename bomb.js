@@ -452,7 +452,7 @@ function pickNextEnemy3(map, boxes, enemy, target, bombs = [], explodeCells = []
 
 export function startBomb () {
 
-    //初次渲染先推出固定的行數
+//初次渲染先推出固定的行數
 process.stdout.write("\n".repeat(map.length + 1));
 render();
 
