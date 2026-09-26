@@ -1,3 +1,5 @@
+// -----------工具區開始
+
 //地圖初始化
 function createMap(width, height) {
     // 一樣先有一個陣列來儲存整個地圖
@@ -26,8 +28,6 @@ function createMap(width, height) {
 
     return map
 }
-
-const map = createMap(7, 7);
 
 // occupied 預設是一個空陣列，這樣也可以避免萬一沒傳入變數的情況，不會報錯
 function pickRandomEmptyCell(map, occupied = []) {
@@ -168,14 +168,6 @@ function movePlayer(dx, dy) {
     }
 }
 
-// // 首先移動一下生成的順序
-let player = pickRandomEmptyCell(map);
-let goal = pickRandomEmptyCell(map, [player]); // 先生成目標點
-let box1 = boxPicker(map, [player, goal]); // box 改為 box1，要避開項目的不變
-let box2 = boxPicker(map, [player, goal, box1]); // 新增一個 box2 ，避開的項目加上 box1
-let button = pickRandomEmptyCell(map, [player, box1, box2, goal]); //button 要避開的項目從 box 改為 box1 和 box2
-const boxes = [box1, box2]; // 這裡我們加上這一句，因為之後會常常用到
-
 //渲染畫面
 function render() {
 
@@ -218,91 +210,106 @@ function render() {
 
 }
 
-//初次渲染
-process.stdout.write("\n".repeat(map.length));
-render()
+export function startBox() {
+    //初次渲染
+    process.stdout.write("\n".repeat(map.length));
+    render()
 
-// stdin 為了節省資源，預設是暫停的，因此我們需要先喚醒才能使用
-process.stdin.resume();
-// 把監聽到的資料轉換成我們看得懂的語言
-process.stdin.setEncoding('utf8');
+    // stdin 為了節省資源，預設是暫停的，因此我們需要先喚醒才能使用
+    process.stdin.resume();
+    // 把監聽到的資料轉換成我們看得懂的語言
+    process.stdin.setEncoding('utf8');
 
-// 加入這一段，讓他能正確地把資料傳給 node
-process.stdin.setRawMode(true);
+    // 加入這一段，讓他能正確地把資料傳給 node
+    process.stdin.setRawMode(true);
 
-// 接收到這些狀況的時候被觸發，'data' 指有新資料進來的時候
-process.stdin.on('data', (key) => {
+    // 接收到這些狀況的時候被觸發，'data' 指有新資料進來的時候
+    process.stdin.on('data', (key) => {
 
-    // 如果按下字母 'q' 或是 'Q'，就正式退出遊戲
-    if (key === 'q' || key === 'Q') {
-        console.log("\n遊戲結束，謝謝遊玩！");
-        process.exit();
-    }
-
-    // 如果按下 Ctrl + C (在 Raw Mode 下對應的編碼是 '\x03')，這是強制退出遊戲
-    if (key === '\x03') {
-        process.exit();
-    }
-
-    // 監聽器內四個方向換上這個邏輯
-    if (key === '\x1b[A') {
-        movePlayer(0, -1)
-    }
-    if (key === '\x1b[B') {
-
-        movePlayer(0, 1)
-    }
-    if (key === '\x1b[C') {
-
-        movePlayer(1, 0)
-    }
-    if (key === '\x1b[D') {
-        movePlayer(-1, 0)
-    }
-
-    // 重新渲染
-    render();
-
-    // 獲勝判定
-    const isOnGoal = boxes.find(box => box.x === goal.x && box.y === goal.y);
-    if (isOnGoal) {
-        process.stdout.write("\n恭喜獲勝\n");
-        process.exit();
-    }
-
-    const position1 = checkBox(map, box1);
-    const position2 = checkBox(map, box2);
-
-    // 如果箱子2在按鈕上，可以推出 box1
-    if (box2.y === button.y && box2.x === button.x && !position1.isDeadlock) {
-        if (position1.top) {
-            moveBoxIfAvailable(box1, 0, 1);
-        } else if (position1.bottom) {
-            moveBoxIfAvailable(box1, 0, -1);
-        } else if (position1.left) {
-            moveBoxIfAvailable(box1, 1, 0);
-        } else if (position1.right) {
-            moveBoxIfAvailable(box1, -1, 0);
+        // 如果按下字母 'q' 或是 'Q'，就正式退出遊戲
+        if (key === 'q' || key === 'Q') {
+            console.log("\n遊戲結束，謝謝遊玩！");
+            process.exit();
         }
-        render();
-    }
-    // 如果箱子1在按鈕上，可以推出 box2
-    if (box1.y === button.y && box1.x === button.x && !position2.isDeadlock) {
-        if (position2.top) {
-            moveBoxIfAvailable(box2, 0, 1);
-        } else if (position2.bottom) {
-            moveBoxIfAvailable(box2, 0, -1);
-        } else if (position2.left) {
-            moveBoxIfAvailable(box2, 1, 0);
-        } else if (position2.right) {
-            moveBoxIfAvailable(box2, -1, 0);
-        }
-        render();
-    }
 
-    // 改成兩個箱子都在死角，就結束遊戲
-    if (position1.isDeadlock && position2.isDeadlock) {
-        process.stdout.write("\n箱子卡住了，遊戲結束\n");
-        process.exit();
-    }
-});
+        // 如果按下 Ctrl + C (在 Raw Mode 下對應的編碼是 '\x03')，這是強制退出遊戲
+        if (key === '\x03') {
+            process.exit();
+        }
+
+        // 監聽器內四個方向換上這個邏輯
+        if (key === '\x1b[A') {
+            movePlayer(0, -1)
+        }
+        if (key === '\x1b[B') {
+
+            movePlayer(0, 1)
+        }
+        if (key === '\x1b[C') {
+
+            movePlayer(1, 0)
+        }
+        if (key === '\x1b[D') {
+            movePlayer(-1, 0)
+        }
+
+        // 重新渲染
+        render();
+
+        // 獲勝判定
+        const isOnGoal = boxes.find(box => box.x === goal.x && box.y === goal.y);
+        if (isOnGoal) {
+            process.stdout.write("\n恭喜獲勝\n");
+            process.exit();
+        }
+
+        const position1 = checkBox(map, box1);
+        const position2 = checkBox(map, box2);
+
+        // 如果箱子2在按鈕上，可以推出 box1
+        if (box2.y === button.y && box2.x === button.x && !position1.isDeadlock) {
+            if (position1.top) {
+                moveBoxIfAvailable(box1, 0, 1);
+            } else if (position1.bottom) {
+                moveBoxIfAvailable(box1, 0, -1);
+            } else if (position1.left) {
+                moveBoxIfAvailable(box1, 1, 0);
+            } else if (position1.right) {
+                moveBoxIfAvailable(box1, -1, 0);
+            }
+            render();
+        }
+        // 如果箱子1在按鈕上，可以推出 box2
+        if (box1.y === button.y && box1.x === button.x && !position2.isDeadlock) {
+            if (position2.top) {
+                moveBoxIfAvailable(box2, 0, 1);
+            } else if (position2.bottom) {
+                moveBoxIfAvailable(box2, 0, -1);
+            } else if (position2.left) {
+                moveBoxIfAvailable(box2, 1, 0);
+            } else if (position2.right) {
+                moveBoxIfAvailable(box2, -1, 0);
+            }
+            render();
+        }
+
+        // 改成兩個箱子都在死角，就結束遊戲
+        if (position1.isDeadlock && position2.isDeadlock) {
+            process.stdout.write("\n箱子卡住了，遊戲結束\n");
+            process.exit();
+        }
+    });
+}
+
+// -----------工具區結束
+// -----------邏輯區開始
+
+const map = createMap(7, 7);
+
+// // 首先移動一下生成的順序
+let player = pickRandomEmptyCell(map);
+let goal = pickRandomEmptyCell(map, [player]); // 先生成目標點
+let box1 = boxPicker(map, [player, goal]); // box 改為 box1，要避開項目的不變
+let box2 = boxPicker(map, [player, goal, box1]); // 新增一個 box2 ，避開的項目加上 box1
+let button = pickRandomEmptyCell(map, [player, box1, box2, goal]); //button 要避開的項目從 box 改為 box1 和 box2
+const boxes = [box1, box2]; // 這裡我們加上這一句，因為之後會常常用到

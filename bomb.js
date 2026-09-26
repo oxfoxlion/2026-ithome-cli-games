@@ -450,25 +450,9 @@ function pickNextEnemy3(map, boxes, enemy, target, bombs = [], explodeCells = []
     return { ...enemy };
 }
 
-// -----------工具區結束
-// -----------邏輯區開始
+export function startBomb () {
 
-// 執行地圖初始化並計算出 map 
-const map = createMap(15, 9);
-
-// 遊戲物件區
-let player = pickRandomEmptyCell(map);
-let enemy1 = { ...pickRandomEmptyCell(map, [player]), live: true };
-let enemy2 = { ...pickRandomEmptyCell(map, [player, enemy1]), live: true };
-let enemy3 = { ...pickRandomEmptyCell(map, [player, enemy1, enemy2]), live: true };
-const enemies = [enemy1, enemy2, enemy3];
-let enemyNum = enemies.filter(enemy => enemy.live === true).length;
-let boxes = createBoxes(map, 10, [player, enemy1, enemy2, enemy3]);
-let HP = 3;
-let bombs = []; // 尚未爆炸的炸彈
-let explodeCells = []; // 爆炸中的格子
-
-//初次渲染先推出固定的行數
+    //初次渲染先推出固定的行數
 process.stdout.write("\n".repeat(map.length + 1));
 render();
 
@@ -532,3 +516,23 @@ setInterval(() => {
     // 渲染
     render();
 }, 1000);
+    
+}
+
+// -----------工具區結束
+// -----------邏輯區開始
+
+// 執行地圖初始化並計算出 map 
+const map = createMap(15, 9);
+
+// 遊戲物件區
+let player = pickRandomEmptyCell(map);
+let enemy1 = { ...pickRandomEmptyCell(map, [player]), live: true };
+let enemy2 = { ...pickRandomEmptyCell(map, [player, enemy1]), live: true };
+let enemy3 = { ...pickRandomEmptyCell(map, [player, enemy1, enemy2]), live: true };
+const enemies = [enemy1, enemy2, enemy3];
+let enemyNum = enemies.filter(enemy => enemy.live === true).length;
+let boxes = createBoxes(map, 10, [player, enemy1, enemy2, enemy3]);
+let HP = 3;
+let bombs = []; // 尚未爆炸的炸彈
+let explodeCells = []; // 爆炸中的格子

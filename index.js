@@ -1,7 +1,10 @@
+import { startBomb } from "./bomb.js";
+import { startBox } from "./box.js";
+
 // 遊戲註冊區
 const games = [
-    { id: 1, name: '推箱子' },
-    { id: 2, name: '爆爆王' }
+    { id: 1, name: '推箱子',script: startBox },
+    { id: 2, name: '爆爆王',script: startBomb }
 ]
 
 // 畫面高度
@@ -83,8 +86,9 @@ process.stdin.on('data', (key) => {
     // Enter
     if (key === '\r' || key === '\n') {
         // 進入選擇的遊戲
-        const gameName = games.find(game => game.id === focus).name;
-        guideline = `你選擇的是 ${gameName}`;
+        const game = games.find(game => game.id === focus);
+        guideline = `你選擇的是 ${game.name}`;
+        game.script();
     }
 
     // 上方向鍵
