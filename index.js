@@ -3,12 +3,12 @@ import { startBox } from "./box.js";
 
 // 遊戲註冊區
 const games = [
-    { id: 1, name: '推箱子',script: startBox },
-    { id: 2, name: '爆爆王',script: startBomb }
+    { id: 1, name: '推箱子', script: startBox },
+    { id: 2, name: '爆爆王', script: startBomb }
 ]
 
 // 畫面高度
-const height = games.length +1;
+const height = games.length + 1;
 
 // 當前關注項目
 let focus = 1;
@@ -50,13 +50,18 @@ function render() {
     }
 
 
-    frame += guideline+'\n';
+    frame += guideline + '\n';
 
     // 印出來看看結果
     process.stdout.write(`\x1b[${height}A`);
     process.stdout.write('\x1b[J')
     process.stdout.write(frame);
 
+}
+
+function backToMenu() {
+    playerState = 0;
+    render();
 }
 
 //初次渲染
@@ -96,7 +101,7 @@ process.stdin.on('data', (key) => {
         playerState = game.id;
         process.stdout.write(`\x1b[${height}A`);
         process.stdout.write('\x1b[J');
-        game.script();
+        game.script(backToMenu);
         return;
     }
 

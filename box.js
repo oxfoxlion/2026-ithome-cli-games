@@ -210,7 +210,8 @@ function render() {
 
 }
 
-export function startBox() {
+export function startBox(backToMenu) {
+
     //初次渲染
     process.stdout.write("\n".repeat(map.length));
     render()
@@ -226,10 +227,12 @@ export function startBox() {
     // 接收到這些狀況的時候被觸發，'data' 指有新資料進來的時候
     process.stdin.on('data', (key) => {
 
-        // 如果按下字母 'q' 或是 'Q'，就正式退出遊戲
+        // 如果按下字母 'q' 或是 'Q'，就回到選單
         if (key === 'q' || key === 'Q') {
-            console.log("\n遊戲結束，謝謝遊玩！");
-            process.exit();
+            process.stdout.write(`\x1b[${map.length}A`);
+            process.stdout.write('\x1b[J');
+            backToMenu();
+            return;
         }
 
         // 如果按下 Ctrl + C (在 Raw Mode 下對應的編碼是 '\x03')，這是強制退出遊戲
