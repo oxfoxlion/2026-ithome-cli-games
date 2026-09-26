@@ -225,10 +225,11 @@ export function startBox(backToMenu) {
     process.stdin.setRawMode(true);
 
     // 接收到這些狀況的時候被觸發，'data' 指有新資料進來的時候
-    process.stdin.on('data', (key) => {
+    function handleBoxInput(key) {
 
         // 如果按下字母 'q' 或是 'Q'，就回到選單
         if (key === 'q' || key === 'Q') {
+            process.stdin.off('data', handleBoxInput);
             process.stdout.write(`\x1b[${map.length}A`);
             process.stdout.write('\x1b[J');
             backToMenu();
@@ -301,7 +302,9 @@ export function startBox(backToMenu) {
             process.stdout.write("\n箱子卡住了，遊戲結束\n");
             process.exit();
         }
-    });
+    }
+
+    process.stdin.on('data', handleBoxInput);
 }
 
 // -----------工具區結束

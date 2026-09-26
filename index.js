@@ -31,7 +31,7 @@ function changeFocus(num) {
 }
 
 //渲染畫面
-function render() {
+function render(moveCursor = true) {
 
     //儲存整個畫面的字串
     let frame = '';
@@ -52,16 +52,18 @@ function render() {
 
     frame += guideline + '\n';
 
-    // 印出來看看結果
-    process.stdout.write(`\x1b[${height}A`);
-    process.stdout.write('\x1b[J')
+    // 選單內重畫時移回原來位置；從遊戲回來時由遊戲先定位好游標
+    if (moveCursor) {
+        process.stdout.write(`\x1b[${height}A`);
+        process.stdout.write('\x1b[J');
+    }
     process.stdout.write(frame);
 
 }
 
 function backToMenu() {
     playerState = 0;
-    render();
+    render(false);
 }
 
 //初次渲染

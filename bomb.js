@@ -179,7 +179,11 @@ function putBomb(map) {
     const bomb = { x: bombX, y: bombY, explodeAt };
     bombs.push(bomb)
 
-    setTimeout(() => explodeBomb(map, bomb), 3000);
+    const explodeTimer = setTimeout(() => {
+        pendingBombTimers.delete(explodeTimer);
+        explodeBomb(map, bomb);
+    }, 3000);
+    pendingBombTimers.add(explodeTimer);
 }
 
 function explodeBomb(map, bomb) {
@@ -235,12 +239,14 @@ function explodeBomb(map, bomb) {
     bombs = bombs.filter(item => item !== bomb);
 
     // 爆炸效果保留一秒，再只清除這顆炸彈建立的爆炸格。
-    setTimeout(() => {
+    const clearExplosionTimer = setTimeout(() => {
+        pendingBombTimers.delete(clearExplosionTimer);
         for (let i = 0; i < surroundingCells.length; i++) {
             explodeCells = explodeCells.filter(cell => cell !== surroundingCells[i]);
         }
         render();
     }, 1000);
+    pendingBombTimers.add(clearExplosionTimer);
 }
 
 function moveEnemy(map, boxes, enemy, player,bombs,explodeCells) {
@@ -450,7 +456,7 @@ function pickNextEnemy3(map, boxes, enemy, target, bombs = [], explodeCells = []
     return { ...enemy };
 }
 
-export function startBomb () {
+export function startBomb (backToMenu) {
 
 //初次渲染先推出固定的行數
 process.stdout.write("\n".repeat(map.length + 1));
@@ -461,12 +467,22 @@ process.stdin.resume();
 process.stdin.setEncoding('utf8');
 process.stdin.setRawMode(true);
 // 接收到這些狀況的時候被觸發，'data' 指有新資料進來的時候
-process.stdin.on('data', (key) => {
+function handleBombInput(key) {
 
-    // 如果按下字母 q 或是 Q，退出遊戲
+    // 如果按下字母 q 或是 Q，回到選單
     if (key === 'q' || key === 'Q') {
-        console.log("\n遊戲結束，謝謝遊玩！");
-        process.exit();
+        process.stdin.off('data', handleBombInput);
+        clearInterval(enemyTimer);
+        for (const timer of pendingBombTimers) {
+            clearTimeout(timer);
+        }
+        pendingBombTimers.clear();
+        bombs = [];
+        explodeCells = [];
+        process.stdout.write(`\x1b[${map.length + 1}A`);
+        process.stdout.write('\x1b[J');
+        backToMenu();
+        return;
     }
 
     // 如果按下 Ctrl + C 強制退出遊戲
@@ -498,10 +514,12 @@ process.stdin.on('data', (key) => {
     render();
 
 
-});
+}
+
+process.stdin.on('data', handleBombInput);
 
 // 敵人移動
-setInterval(() => {
+const enemyTimer = setInterval(() => {
     // 當炸彈已到爆炸時間時，先讓爆炸的 callback 完成傷害判定，
     // 避免同時到期的敵人移動 callback 先改變敵人位置。
     const hasDueBomb = bombs.some(bomb => bomb.explodeAt <= Date.now());
@@ -536,3 +554,4 @@ let boxes = createBoxes(map, 10, [player, enemy1, enemy2, enemy3]);
 let HP = 3;
 let bombs = []; // 尚未爆炸的炸彈
 let explodeCells = []; // 爆炸中的格子
+const pendingBombTimers = new Set();
