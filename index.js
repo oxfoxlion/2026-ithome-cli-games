@@ -13,6 +13,7 @@ const height = games.length +1;
 // 當前關注項目
 let focus = 1;
 let guideline = `上下：選擇遊戲 Enter：進入遊戲`
+let playerState = 0;
 
 // 改變 focus
 function changeFocus(num) {
@@ -73,6 +74,11 @@ process.stdin.setRawMode(true);
 // 接收到這些狀況的時候被觸發，'data' 指有新資料進來的時候
 process.stdin.on('data', (key) => {
 
+    // 如果不是選單就直接終止
+    if (playerState !== 0) {
+        return;
+    }
+
     // 如果按下字母 'q' 或是 'Q'，就回到遊戲
     if (key === 'q' || key === 'Q') {
         guideline = `上下：選擇遊戲 Enter：進入遊戲`;
@@ -87,6 +93,7 @@ process.stdin.on('data', (key) => {
     if (key === '\r' || key === '\n') {
         // 進入選擇的遊戲
         const game = games.find(game => game.id === focus);
+        playerState = game.id;
         process.stdout.write(`\x1b[${height}A`);
         process.stdout.write('\x1b[J');
         game.script();
