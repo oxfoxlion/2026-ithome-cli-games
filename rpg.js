@@ -169,13 +169,20 @@ export function startRPG(backToMenu) {
 }
 
 
-
+// 玩家
 let player = { x: 1, y: 1 };
 
+// 村莊物件
 const village = createVillage();
 const npc = village.npc;
 const exit = village.exit;
 const walls = village.walls;
+
+//地圖
 const map = createMap(30, 9,walls);
+
+//視窗大小
+let viewHeight = 10;
+let viewWidth = 8;
 
 startRPG(() => process.exit(0));
