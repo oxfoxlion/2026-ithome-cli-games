@@ -1,3 +1,5 @@
+export function createBombGame() {
+
 // -----------工具區開始
 
 //地圖初始化工具
@@ -456,38 +458,32 @@ function pickNextEnemy3(map, boxes, enemy, target, bombs = [], explodeCells = []
     return { ...enemy };
 }
 
-export function startBomb (backToMenu) {
+let onExit;
+let enemyTimer = null;
+let started = false;
+
+function start(exitGame) {
+
+onExit = exitGame;
+started = true;
 
 //初次渲染先推出固定的行數
 process.stdout.write("\n".repeat(map.length + 1));
 render();
+enemyTimer = setInterval(moveEnemies, 1000);
+}
 
-// 監聽器前置設定
-process.stdin.resume();
-process.stdin.setEncoding('utf8');
-process.stdin.setRawMode(true);
-// 接收到這些狀況的時候被觸發，'data' 指有新資料進來的時候
-function handleBombInput(key) {
-
-    // 如果按下字母 q 或是 Q，回到選單
-    if (key === 'q' || key === 'Q') {
-        process.stdin.off('data', handleBombInput);
-        clearInterval(enemyTimer);
-        for (const timer of pendingBombTimers) {
-            clearTimeout(timer);
-        }
-        pendingBombTimers.clear();
-        bombs = [];
-        explodeCells = [];
-        process.stdout.write(`\x1b[${map.length + 1}A`);
-        process.stdout.write('\x1b[J');
-        backToMenu();
+function handleInput(key) {
+    if (!started) {
         return;
     }
 
-    // 如果按下 Ctrl + C 強制退出遊戲
-    if (key === '\x03') {
-        process.exit();
+    // 如果按下字母 q 或是 Q，回到選單
+    if (key === 'q' || key === 'Q') {
+        process.stdout.write(`\x1b[${map.length + 1}A`);
+        process.stdout.write('\x1b[J');
+        onExit();
+        return;
     }
 
     // 按下空白鍵放炸彈
@@ -516,10 +512,8 @@ function handleBombInput(key) {
 
 }
 
-process.stdin.on('data', handleBombInput);
-
 // 敵人移動
-const enemyTimer = setInterval(() => {
+function moveEnemies() {
     // 當炸彈已到爆炸時間時，先讓爆炸的 callback 完成傷害判定，
     // 避免同時到期的敵人移動 callback 先改變敵人位置。
     const hasDueBomb = bombs.some(bomb => bomb.explodeAt <= Date.now());
@@ -533,8 +527,20 @@ const enemyTimer = setInterval(() => {
 
     // 渲染
     render();
-}, 1000);
-    
+}
+
+function stop() {
+    started = false;
+    onExit = null;
+    clearInterval(enemyTimer);
+    enemyTimer = null;
+
+    for (const timer of pendingBombTimers) {
+        clearTimeout(timer);
+    }
+    pendingBombTimers.clear();
+    bombs = [];
+    explodeCells = [];
 }
 
 // -----------工具區結束
@@ -555,3 +561,6 @@ let HP = 3;
 let bombs = []; // 尚未爆炸的炸彈
 let explodeCells = []; // 爆炸中的格子
 const pendingBombTimers = new Set();
+
+return { start, stop, handleInput };
+}

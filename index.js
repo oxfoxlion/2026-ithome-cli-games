@@ -1,10 +1,10 @@
-import { startBomb } from "./bomb.js";
-import { startBox } from "./box.js";
+import { createBombGame } from "./bomb.js";
+import { createBoxGame } from "./box.js";
 
 // 遊戲註冊區
 const games = [
-    { id: 1, name: '推箱子', script: startBox },
-    { id: 2, name: '爆爆王', script: startBomb }
+    { id: 1, name: '推箱子', create: createBoxGame },
+    { id: 2, name: '爆爆王', create: createBombGame }
 ]
 
 // 畫面高度
@@ -13,7 +13,8 @@ const height = games.length + 1;
 // 當前關注項目
 let focus = 1;
 let guideline = `上下：選擇遊戲 Enter：進入遊戲`
-let playerState = 0;
+let activeGame = null;
+let activeInputHandler = handleMenuInput;
 
 // 改變 focus
 function changeFocus(num) {
@@ -62,8 +63,18 @@ function render(moveCursor = true) {
 }
 
 function backToMenu() {
-    playerState = 0;
+    activeGame?.stop();
+    activeGame = null;
+    activeInputHandler = handleMenuInput;
     render(false);
+}
+
+function enterGame(gameDefinition) {
+    activeGame = gameDefinition.create();
+    activeInputHandler = activeGame.handleInput;
+    process.stdout.write(`\x1b[${height}A`);
+    process.stdout.write('\x1b[J');
+    activeGame.start(backToMenu);
 }
 
 //初次渲染
@@ -78,32 +89,17 @@ process.stdin.setEncoding('utf8');
 // 加入這一段，讓他能把資料傳給 node ，不須經過 enter
 process.stdin.setRawMode(true);
 
-// 接收到這些狀況的時候被觸發，'data' 指有新資料進來的時候
-process.stdin.on('data', (key) => {
-
-    // 如果不是選單就直接終止
-    if (playerState !== 0) {
-        return;
-    }
-
-    // 如果按下字母 'q' 或是 'Q'，就回到遊戲
+function handleMenuInput(key) {
+    // 選單中的 q 不切換狀態，只維持操作提示。
     if (key === 'q' || key === 'Q') {
         guideline = `上下：選擇遊戲 Enter：進入遊戲`;
-    }
-
-    // 如果按下 Ctrl + C 就強制退出遊戲
-    if (key === '\x03') {
-        process.exit();
     }
 
     // Enter
     if (key === '\r' || key === '\n') {
         // 進入選擇的遊戲
         const game = games.find(game => game.id === focus);
-        playerState = game.id;
-        process.stdout.write(`\x1b[${height}A`);
-        process.stdout.write('\x1b[J');
-        game.script(backToMenu);
+        enterGame(game);
         return;
     }
 
@@ -119,4 +115,15 @@ process.stdin.on('data', (key) => {
 
     // 重新渲染
     render();
+}
+
+// stdin 只有這一個實體監聽器，再將輸入交給目前啟用的介面。
+process.stdin.on('data', (key) => {
+    // Raw Mode 下 Ctrl + C 會以 \x03 傳入，因此在路由前統一處理。
+    if (key === '\x03') {
+        activeGame?.stop();
+        process.exit();
+    }
+
+    activeInputHandler(key);
 });

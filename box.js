@@ -1,3 +1,5 @@
+export function createBoxGame() {
+
 // -----------工具區開始
 
 //地圖初始化
@@ -210,35 +212,30 @@ function render() {
 
 }
 
-export function startBox(backToMenu) {
+let onExit;
+let started = false;
+
+function start(exitGame) {
+
+    onExit = exitGame;
+    started = true;
 
     //初次渲染
     process.stdout.write("\n".repeat(map.length));
     render()
+}
 
-    // stdin 為了節省資源，預設是暫停的，因此我們需要先喚醒才能使用
-    process.stdin.resume();
-    // 把監聽到的資料轉換成我們看得懂的語言
-    process.stdin.setEncoding('utf8');
-
-    // 加入這一段，讓他能正確地把資料傳給 node
-    process.stdin.setRawMode(true);
-
-    // 接收到這些狀況的時候被觸發，'data' 指有新資料進來的時候
-    function handleBoxInput(key) {
-
-        // 如果按下字母 'q' 或是 'Q'，就回到選單
-        if (key === 'q' || key === 'Q') {
-            process.stdin.off('data', handleBoxInput);
-            process.stdout.write(`\x1b[${map.length}A`);
-            process.stdout.write('\x1b[J');
-            backToMenu();
+function handleInput(key) {
+        if (!started) {
             return;
         }
 
-        // 如果按下 Ctrl + C (在 Raw Mode 下對應的編碼是 '\x03')，這是強制退出遊戲
-        if (key === '\x03') {
-            process.exit();
+        // 如果按下字母 'q' 或是 'Q'，就回到選單
+        if (key === 'q' || key === 'Q') {
+            process.stdout.write(`\x1b[${map.length}A`);
+            process.stdout.write('\x1b[J');
+            onExit();
+            return;
         }
 
         // 監聽器內四個方向換上這個邏輯
@@ -302,9 +299,11 @@ export function startBox(backToMenu) {
             process.stdout.write("\n箱子卡住了，遊戲結束\n");
             process.exit();
         }
-    }
+}
 
-    process.stdin.on('data', handleBoxInput);
+function stop() {
+    started = false;
+    onExit = null;
 }
 
 // -----------工具區結束
@@ -319,3 +318,6 @@ let box1 = boxPicker(map, [player, goal]); // box 改為 box1，要避開項目�
 let box2 = boxPicker(map, [player, goal, box1]); // 新增一個 box2 ，避開的項目加上 box1
 let button = pickRandomEmptyCell(map, [player, box1, box2, goal]); //button 要避開的項目從 box 改為 box1 和 box2
 const boxes = [box1, box2]; // 這裡我們加上這一句，因為之後會常常用到
+
+return { start, stop, handleInput };
+}
