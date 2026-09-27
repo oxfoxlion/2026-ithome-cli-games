@@ -1,5 +1,5 @@
 //地圖初始化
-function createMap(width, height) {
+function createMap(width, height,walls = []) {
     // 一樣先有一個陣列來儲存整個地圖
     const map = [];
 
@@ -11,9 +11,9 @@ function createMap(width, height) {
 
         for (let x = 0; x < width; x++) {
 
-            // 判斷是不是邊邊
-            const isBorder = y === 0 || y === height - 1 || x === 0 || x === width - 1;
-            if (isBorder) {
+            // 判斷是不是牆壁
+            const isWall = walls.find(wall=>x === wall.x && y === wall.y);
+            if (isWall) {
                 row.push('#')
             } else {
                 row.push(' ')
@@ -25,6 +25,46 @@ function createMap(width, height) {
     }
 
     return map
+}
+
+function createVillage() {
+    let walls = [];
+    let npc;
+    let exit;
+
+    // 之後換地圖只要改這裡
+    const village = [
+        '##############################',
+        '#           ##               #',
+        '#           ##    ##         #',
+        '#           ## P  ##         #',
+        '#     ##    ########   ##    #',
+        '#     ##               ##   %#',
+        '#     ##         ########    #',
+        '#     ##         ##          #',
+        '##############################',
+    ]
+
+    for (let y = 0; y < village.length; y++) {
+
+        for (let x = 0; x < village[y].length; x++) {
+
+            if (village[y][x] === '#') {
+                walls.push({ x:x, y:y })
+
+            }
+            if (village[y][x] === 'P') {
+                npc = { x, y }
+            }
+            if (village[y][x] === '%') {
+                exit = { x, y }
+            }
+        }
+
+    }
+
+
+    return { walls, npc, exit };
 }
 
 function movePlayer(dx, dy) {
@@ -57,7 +97,7 @@ function render() {
             } else if (npc.x === x && npc.y === y) {
                 row += `\x1b[34mP\x1b[0m`
             } else if (exit.x === x && exit.y === y) {
-                row += `\x1b[34m%\x1b[0m`
+                row += `\x1b[37m%\x1b[0m`
             } else {
                 row += `\x1b[32m${cell}\x1b[0m`
             }
@@ -128,10 +168,14 @@ export function startRPG(backToMenu) {
     process.stdin.on('data', handleRPGInput);
 }
 
-const map = createMap(30, 9);
 
-let player = {x:1,y:1};
-let npc = {x:20,y:5};
-let exit = {x:29,y:4};
+
+let player = { x: 1, y: 1 };
+
+const village = createVillage();
+const npc = village.npc;
+const exit = village.exit;
+const walls = village.walls;
+const map = createMap(30, 9,walls);
 
 startRPG(() => process.exit(0));
