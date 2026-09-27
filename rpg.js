@@ -1,0 +1,137 @@
+//地圖初始化
+function createMap(width, height) {
+    // 一樣先有一個陣列來儲存整個地圖
+    const map = [];
+
+    // 熟悉的雙層迴圈，這次是直接用寬高的數值來計算
+    for (let y = 0; y < height; y++) {
+
+        // 用來記錄這一行的每一個座標
+        const row = [];
+
+        for (let x = 0; x < width; x++) {
+
+            // 判斷是不是邊邊
+            const isBorder = y === 0 || y === height - 1 || x === 0 || x === width - 1;
+            if (isBorder) {
+                row.push('#')
+            } else {
+                row.push(' ')
+            }
+
+        }
+
+        map.push(row)
+    }
+
+    return map
+}
+
+function movePlayer(dx, dy) {
+    // 藉由傳入的 dx 和 dy 來定位下一個座標，這樣我們就知道要往哪邊走
+    const nextX = player.x + dx; // 下一個 x  
+    const nextY = player.y + dy; // 下一個 y 
+
+    if (map[nextY][nextX] === ' ') {
+        player.x = nextX; // player 的座標移動到下一個位置
+        player.y = nextY;
+    }
+}
+
+//渲染畫面
+function render() {
+
+    //儲存整個畫面的字串
+    let frame = ''
+
+    for (let y = 0; y < map.length; y++) {
+        let row = ''
+
+        for (let x = 0; x < map[y].length; x++) {
+
+            // 小優化，把常用的寫法儲存成變數
+            const cell = map[y][x]
+
+            if (player.x === x && player.y === y) {
+                row += `\x1b[33m@\x1b[0m`
+            } else if (npc.x === x && npc.y === y) {
+                row += `\x1b[34mP\x1b[0m`
+            } else if (exit.x === x && exit.y === y) {
+                row += `\x1b[34m%\x1b[0m`
+            } else {
+                row += `\x1b[32m${cell}\x1b[0m`
+            }
+
+        }
+
+        //把這行儲存進去 frame，並記得結尾換行
+        frame += row + '\n'
+    }
+
+    // 一樣先印出來看看結果
+    process.stdout.write(`\x1b[${map.length}A`);
+    process.stdout.write(frame);
+
+}
+
+export function startRPG(backToMenu) {
+
+    //初次渲染
+    process.stdout.write("\n".repeat(map.length));
+    render()
+
+    // stdin 為了節省資源，預設是暫停的，因此我們需要先喚醒才能使用
+    process.stdin.resume();
+    // 把監聽到的資料轉換成我們看得懂的語言
+    process.stdin.setEncoding('utf8');
+
+    // 加入這一段，讓他能正確地把資料傳給 node
+    process.stdin.setRawMode(true);
+
+    // 接收到這些狀況的時候被觸發，'data' 指有新資料進來的時候
+    function handleRPGInput(key) {
+
+        // 如果按下字母 'q' 或是 'Q'，就回到選單
+        if (key === 'q' || key === 'Q') {
+            process.stdout.write(`\x1b[${map.length}A`);
+            process.stdout.write('\x1b[J');
+            backToMenu();
+            return;
+        }
+
+        // 如果按下 Ctrl + C (在 Raw Mode 下對應的編碼是 '\x03')，這是強制退出遊戲
+        if (key === '\x03') {
+            process.stdin.setRawMode(false);
+            process.exit(130);
+        }
+
+        // 監聽器內四個方向換上這個邏輯
+        if (key === '\x1b[A') {
+            movePlayer(0, -1)
+        }
+        if (key === '\x1b[B') {
+
+            movePlayer(0, 1)
+        }
+        if (key === '\x1b[C') {
+
+            movePlayer(1, 0)
+        }
+        if (key === '\x1b[D') {
+            movePlayer(-1, 0)
+        }
+
+        // 重新渲染
+        render();
+    }
+
+    process.stdin.on('data', handleRPGInput);
+}
+
+const map = createMap(30, 9);
+
+let player = {x:1,y:1};
+let npc = {x:20,y:5};
+let exit = {x:29,y:4};
+
+startRPG(() => process.exit(0));
