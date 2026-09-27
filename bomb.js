@@ -471,14 +471,6 @@ function handleBombInput(key) {
 
     // 如果按下字母 q 或是 Q，回到選單
     if (key === 'q' || key === 'Q') {
-        process.stdin.off('data', handleBombInput);
-        clearInterval(enemyTimer);
-        for (const timer of pendingBombTimers) {
-            clearTimeout(timer);
-        }
-        pendingBombTimers.clear();
-        bombs = [];
-        explodeCells = [];
         process.stdout.write(`\x1b[${map.length + 1}A`);
         process.stdout.write('\x1b[J');
         backToMenu();
@@ -487,7 +479,8 @@ function handleBombInput(key) {
 
     // 如果按下 Ctrl + C 強制退出遊戲
     if (key === '\x03') {
-        process.exit();
+        process.stdin.setRawMode(false);
+        process.exit(130);
     }
 
     // 按下空白鍵放炸彈
@@ -555,3 +548,6 @@ let HP = 3;
 let bombs = []; // 尚未爆炸的炸彈
 let explodeCells = []; // 爆炸中的格子
 const pendingBombTimers = new Set();
+
+// 每次由選單啟動時都是新的 Node 程序，因此所有狀態都是全新的一局。
+startBomb(() => process.exit(0));

@@ -229,7 +229,6 @@ export function startBox(backToMenu) {
 
         // 如果按下字母 'q' 或是 'Q'，就回到選單
         if (key === 'q' || key === 'Q') {
-            process.stdin.off('data', handleBoxInput);
             process.stdout.write(`\x1b[${map.length}A`);
             process.stdout.write('\x1b[J');
             backToMenu();
@@ -238,7 +237,8 @@ export function startBox(backToMenu) {
 
         // 如果按下 Ctrl + C (在 Raw Mode 下對應的編碼是 '\x03')，這是強制退出遊戲
         if (key === '\x03') {
-            process.exit();
+            process.stdin.setRawMode(false);
+            process.exit(130);
         }
 
         // 監聽器內四個方向換上這個邏輯
@@ -319,3 +319,6 @@ let box1 = boxPicker(map, [player, goal]); // box 改為 box1，要避開項目�
 let box2 = boxPicker(map, [player, goal, box1]); // 新增一個 box2 ，避開的項目加上 box1
 let button = pickRandomEmptyCell(map, [player, box1, box2, goal]); //button 要避開的項目從 box 改為 box1 和 box2
 const boxes = [box1, box2]; // 這裡我們加上這一句，因為之後會常常用到
+
+// 每次由選單啟動時都是新的 Node 程序，因此所有狀態都是全新的一局。
+startBox(() => process.exit(0));

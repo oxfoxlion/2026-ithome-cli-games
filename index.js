@@ -1,10 +1,10 @@
-import { startBomb } from "./bomb.js";
-import { startBox } from "./box.js";
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 // 遊戲註冊區
 const games = [
-    { id: 1, name: '推箱子', script: startBox },
-    { id: 2, name: '爆爆王', script: startBomb }
+    { id: 1, name: '推箱子', script: './box.js' },
+    { id: 2, name: '爆爆王', script: './bomb.js' }
 ]
 
 // 畫面高度
@@ -13,7 +13,7 @@ const height = games.length + 1;
 // 當前關注項目
 let focus = 1;
 let guideline = `上下：選擇遊戲 Enter：進入遊戲`
-let playerState = 0;
+let activeChild = null;
 
 // 改變 focus
 function changeFocus(num) {
@@ -62,8 +62,46 @@ function render(moveCursor = true) {
 }
 
 function backToMenu() {
-    playerState = 0;
+    activeChild = null;
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
     render(false);
+}
+
+function exitProgram(code = 0) {
+    if (process.stdin.isTTY) {
+        process.stdin.setRawMode(false);
+    }
+    process.exit(code);
+}
+
+function startGame(game) {
+    process.stdin.pause();
+    process.stdout.write(`\x1b[${height}A`);
+    process.stdout.write('\x1b[J');
+
+    const scriptPath = fileURLToPath(new URL(game.script, import.meta.url));
+    const child = spawn(process.execPath, [scriptPath], {
+        stdio: 'inherit',
+    });
+    activeChild = child;
+
+    child.once('error', (error) => {
+        process.stderr.write(`無法啟動遊戲：${error.message}\n`);
+    });
+
+    child.once('close', (code, signal) => {
+        if (activeChild !== child) {
+            return;
+        }
+
+        if (code === 130 || signal === 'SIGINT') {
+            exitProgram(130);
+            return;
+        }
+
+        backToMenu();
+    });
 }
 
 //初次渲染
@@ -80,12 +118,6 @@ process.stdin.setRawMode(true);
 
 // 接收到這些狀況的時候被觸發，'data' 指有新資料進來的時候
 process.stdin.on('data', (key) => {
-
-    // 如果不是選單就直接終止
-    if (playerState !== 0) {
-        return;
-    }
-
     // 如果按下字母 'q' 或是 'Q'，就回到遊戲
     if (key === 'q' || key === 'Q') {
         guideline = `上下：選擇遊戲 Enter：進入遊戲`;
@@ -93,17 +125,14 @@ process.stdin.on('data', (key) => {
 
     // 如果按下 Ctrl + C 就強制退出遊戲
     if (key === '\x03') {
-        process.exit();
+        exitProgram(130);
     }
 
     // Enter
     if (key === '\r' || key === '\n') {
         // 進入選擇的遊戲
         const game = games.find(game => game.id === focus);
-        playerState = game.id;
-        process.stdout.write(`\x1b[${height}A`);
-        process.stdout.write('\x1b[J');
-        game.script(backToMenu);
+        startGame(game);
         return;
     }
 
@@ -119,4 +148,9 @@ process.stdin.on('data', (key) => {
 
     // 重新渲染
     render();
+});
+
+process.on('SIGINT', () => {
+    activeChild?.kill('SIGINT');
+    exitProgram(130);
 });
