@@ -458,6 +458,9 @@ function pickNextEnemy3(map, boxes, enemy, target, bombs = [], explodeCells = []
 
 export function startBomb (backToMenu) {
 
+// 每次進入遊戲都重新產生完整狀態，確保不是延續上一局。
+resetGame();
+
 //初次渲染先推出固定的行數
 process.stdout.write("\n".repeat(map.length + 1));
 render();
@@ -544,14 +547,25 @@ const enemyTimer = setInterval(() => {
 const map = createMap(15, 9);
 
 // 遊戲物件區
-let player = pickRandomEmptyCell(map);
-let enemy1 = { ...pickRandomEmptyCell(map, [player]), live: true };
-let enemy2 = { ...pickRandomEmptyCell(map, [player, enemy1]), live: true };
-let enemy3 = { ...pickRandomEmptyCell(map, [player, enemy1, enemy2]), live: true };
-const enemies = [enemy1, enemy2, enemy3];
-let enemyNum = enemies.filter(enemy => enemy.live === true).length;
-let boxes = createBoxes(map, 10, [player, enemy1, enemy2, enemy3]);
-let HP = 3;
+let player;
+let enemy1;
+let enemy2;
+let enemy3;
+let enemyNum;
+let boxes;
+let HP;
 let bombs = []; // 尚未爆炸的炸彈
 let explodeCells = []; // 爆炸中的格子
 const pendingBombTimers = new Set();
+
+function resetGame() {
+    player = pickRandomEmptyCell(map);
+    enemy1 = { ...pickRandomEmptyCell(map, [player]), live: true };
+    enemy2 = { ...pickRandomEmptyCell(map, [player, enemy1]), live: true };
+    enemy3 = { ...pickRandomEmptyCell(map, [player, enemy1, enemy2]), live: true };
+    enemyNum = 3;
+    boxes = createBoxes(map, 10, [player, enemy1, enemy2, enemy3]);
+    HP = 3;
+    bombs = [];
+    explodeCells = [];
+}

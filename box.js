@@ -212,6 +212,9 @@ function render() {
 
 export function startBox(backToMenu) {
 
+    // 每次進入遊戲都重新產生完整狀態，確保不是延續上一局。
+    resetGame();
+
     //初次渲染
     process.stdout.write("\n".repeat(map.length));
     render()
@@ -312,10 +315,18 @@ export function startBox(backToMenu) {
 
 const map = createMap(7, 7);
 
-// // 首先移動一下生成的順序
-let player = pickRandomEmptyCell(map);
-let goal = pickRandomEmptyCell(map, [player]); // 先生成目標點
-let box1 = boxPicker(map, [player, goal]); // box 改為 box1，要避開項目的不變
-let box2 = boxPicker(map, [player, goal, box1]); // 新增一個 box2 ，避開的項目加上 box1
-let button = pickRandomEmptyCell(map, [player, box1, box2, goal]); //button 要避開的項目從 box 改為 box1 和 box2
-const boxes = [box1, box2]; // 這裡我們加上這一句，因為之後會常常用到
+let player;
+let goal;
+let box1;
+let box2;
+let button;
+let boxes;
+
+function resetGame() {
+    player = pickRandomEmptyCell(map);
+    goal = pickRandomEmptyCell(map, [player]);
+    box1 = boxPicker(map, [player, goal]);
+    box2 = boxPicker(map, [player, goal, box1]);
+    button = pickRandomEmptyCell(map, [player, box1, box2, goal]);
+    boxes = [box1, box2];
+}

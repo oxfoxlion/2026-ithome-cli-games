@@ -64,6 +64,7 @@ function render(moveCursor = true) {
 function backToMenu() {
     playerState = 0;
     render(false);
+    process.stdin.on('data', handleMenuInput);
 }
 
 //初次渲染
@@ -78,14 +79,8 @@ process.stdin.setEncoding('utf8');
 // 加入這一段，讓他能把資料傳給 node ，不須經過 enter
 process.stdin.setRawMode(true);
 
-// 接收到這些狀況的時候被觸發，'data' 指有新資料進來的時候
-process.stdin.on('data', (key) => {
-
-    // 如果不是選單就直接終止
-    if (playerState !== 0) {
-        return;
-    }
-
+// 選單專用的輸入監聽器；進入遊戲後會移除，回到選單才重新掛上。
+function handleMenuInput(key) {
     // 如果按下字母 'q' 或是 'Q'，就回到遊戲
     if (key === 'q' || key === 'Q') {
         guideline = `上下：選擇遊戲 Enter：進入遊戲`;
@@ -101,6 +96,7 @@ process.stdin.on('data', (key) => {
         // 進入選擇的遊戲
         const game = games.find(game => game.id === focus);
         playerState = game.id;
+        process.stdin.off('data', handleMenuInput);
         process.stdout.write(`\x1b[${height}A`);
         process.stdout.write('\x1b[J');
         game.script(backToMenu);
@@ -119,4 +115,6 @@ process.stdin.on('data', (key) => {
 
     // 重新渲染
     render();
-});
+}
+
+process.stdin.on('data', handleMenuInput);
