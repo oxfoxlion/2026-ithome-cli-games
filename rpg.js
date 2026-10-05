@@ -78,16 +78,36 @@ function movePlayer(dx, dy) {
     }
 }
 
+function resetCameraVertex(){
+    // 依據 player 座標更新 cameraVertex
+}
+
+
 //渲染畫面
 function render() {
 
     //儲存整個畫面的字串
     let frame = ''
+    // 每次開始 render 前先重算一次
+    resetCameraVertex();
+    const canvaMinX = cameraVertex.x;
+    const canvaMaxX = cameraVertex.x + viewWidth -1 ;
+    const canvaMinY = cameraVertex.y;
+    const canvaMaxY = cameraVertex.y + viewHeight -1;
 
     for (let y = 0; y < map.length; y++) {
+
+        if(y < canvaMinY || y > canvaMaxY) {
+            continue;
+        }
+
         let row = ''
 
         for (let x = 0; x < map[y].length; x++) {
+
+            if(x < canvaMinX || x > canvaMaxX) {
+                continue;
+            }
 
             // 小優化，把常用的寫法儲存成變數
             const cell = map[y][x]
@@ -109,7 +129,7 @@ function render() {
     }
 
     // 一樣先印出來看看結果
-    process.stdout.write(`\x1b[${map.length}A`);
+    process.stdout.write(`\x1b[${viewHeight}A`);
     process.stdout.write(frame);
 
 }
@@ -117,7 +137,7 @@ function render() {
 export function startRPG(backToMenu) {
 
     //初次渲染
-    process.stdout.write("\n".repeat(map.length));
+    process.stdout.write("\n".repeat(viewHeight));
     render()
 
     // stdin 為了節省資源，預設是暫停的，因此我們需要先喚醒才能使用
@@ -182,7 +202,12 @@ const walls = village.walls;
 const map = createMap(30, 9,walls);
 
 //視窗大小
-let viewHeight = 10;
-let viewWidth = 8;
+let viewWidth = 10;
+let viewHeight = 8;
+
+// 相機頂點
+let cameraVertex = {x:0, y:0};
+
+
 
 startRPG(() => process.exit(0));
