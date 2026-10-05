@@ -79,7 +79,18 @@ function movePlayer(dx, dy) {
 }
 
 function resetCameraVertex(){
-    // 依據 player 座標更新 cameraVertex
+    // 先讓玩家位於畫面中央，再把相機限制在地圖範圍內。
+    const maxCameraX = Math.max(0, map[0].length - viewWidth);
+    const maxCameraY = Math.max(0, map.length - viewHeight);
+
+    cameraVertex.x = Math.max(
+        0,
+        Math.min(player.x - Math.floor(viewWidth / 2), maxCameraX)
+    );
+    cameraVertex.y = Math.max(
+        0,
+        Math.min(player.y - Math.floor(viewHeight / 2), maxCameraY)
+    );
 }
 
 
