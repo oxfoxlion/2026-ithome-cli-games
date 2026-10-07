@@ -1,5 +1,5 @@
 //地圖初始化
-function createMap(width, height,walls = []) {
+function createMap(width, height, walls = []) {
     // 一樣先有一個陣列來儲存整個地圖
     const map = [];
 
@@ -12,7 +12,7 @@ function createMap(width, height,walls = []) {
         for (let x = 0; x < width; x++) {
 
             // 判斷是不是牆壁
-            const isWall = walls.find(wall=>x === wall.x && y === wall.y);
+            const isWall = walls.find(wall => x === wall.x && y === wall.y);
             if (isWall) {
                 row.push('#')
             } else {
@@ -50,7 +50,7 @@ function createVillage() {
         for (let x = 0; x < village[y].length; x++) {
 
             if (village[y][x] === '#') {
-                walls.push({ x:x, y:y })
+                walls.push({ x: x, y: y })
 
             }
             if (village[y][x] === 'P') {
@@ -67,7 +67,51 @@ function createVillage() {
     return { walls, npc, exit };
 }
 
-function movePlayer(dx, dy) {
+function createForest() {
+    let walls = [];
+    let trees = [];
+    let herbs = [];
+    let exit;
+
+    // 之後換地圖只要改這裡
+    const forest = [
+        '##############################',
+        '#           TTT  H           #',
+        '#           TTTTT   H        #',
+        '#              TTTT    TTT   #',
+        '#     T     TTTTT      TTT   #',
+        '#%    TT               TTT   #',
+        '#     TTT H      TTTTTH      #',
+        '#     TTTT       TTT         #',
+        '##############################',
+    ]
+
+    for (let y = 0; y < forest.length; y++) {
+
+        for (let x = 0; x < forest[y].length; x++) {
+
+            if (forest[y][x] === '#') {
+                walls.push({ x: x, y: y })
+
+            }
+            if (forest[y][x] === 'T') {
+                trees.push({ x: x, y: y })
+            }
+            if (forest[y][x] === 'H') {
+                herbs.push({ x: x, y: y })
+            }
+            if (forest[y][x] === '%') {
+                exit = { x, y }
+            }
+        }
+
+    }
+
+
+    return { walls, trees, herbs, exit };
+}
+
+function movePlayer(map, dx, dy) {
     // 藉由傳入的 dx 和 dy 來定位下一個座標，這樣我們就知道要往哪邊走
     const nextX = player.x + dx; // 下一個 x  
     const nextY = player.y + dy; // 下一個 y 
@@ -78,7 +122,7 @@ function movePlayer(dx, dy) {
     }
 }
 
-function resetCameraVertex(){
+function resetCameraVertex(map) {
     // 先讓玩家位於畫面中央，再把相機限制在地圖範圍內。
     const maxCameraX = Math.max(0, map[0].length - viewWidth);
     const maxCameraY = Math.max(0, map.length - viewHeight);
@@ -93,50 +137,96 @@ function resetCameraVertex(){
     );
 }
 
-
 //渲染畫面
 function render() {
 
     //儲存整個畫面的字串
     let frame = ''
-    // 每次開始 render 前先重算一次
-    resetCameraVertex();
-    const canvaMinX = cameraVertex.x;
-    const canvaMaxX = cameraVertex.x + viewWidth -1 ;
-    const canvaMinY = cameraVertex.y;
-    const canvaMaxY = cameraVertex.y + viewHeight -1;
 
-    for (let y = 0; y < map.length; y++) {
+    if (currentMap === 'village') {
 
-        if(y < canvaMinY || y > canvaMaxY) {
-            continue;
-        }
+        // 每次開始 render 前先重算一次
+        resetCameraVertex(villageMap);
+        const canvaMinX = cameraVertex.x;
+        const canvaMaxX = cameraVertex.x + viewWidth - 1;
+        const canvaMinY = cameraVertex.y;
+        const canvaMaxY = cameraVertex.y + viewHeight - 1;
 
-        let row = ''
+        for (let y = 0; y < villageMap.length; y++) {
 
-        for (let x = 0; x < map[y].length; x++) {
-
-            if(x < canvaMinX || x > canvaMaxX) {
+            if (y < canvaMinY || y > canvaMaxY) {
                 continue;
             }
 
-            // 小優化，把常用的寫法儲存成變數
-            const cell = map[y][x]
+            let row = ''
 
-            if (player.x === x && player.y === y) {
-                row += `\x1b[33m@\x1b[0m`
-            } else if (npc.x === x && npc.y === y) {
-                row += `\x1b[34mP\x1b[0m`
-            } else if (exit.x === x && exit.y === y) {
-                row += `\x1b[37m%\x1b[0m`
-            } else {
-                row += `\x1b[32m${cell}\x1b[0m`
+            for (let x = 0; x < villageMap[y].length; x++) {
+
+                if (x < canvaMinX || x > canvaMaxX) {
+                    continue;
+                }
+
+                // 小優化，把常用的寫法儲存成變數
+                const cell = villageMap[y][x]
+
+                if (player.x === x && player.y === y) {
+                    row += `\x1b[33m@\x1b[0m`
+                } else if (npc.x === x && npc.y === y) {
+                    row += `\x1b[34mP\x1b[0m`
+                } else if (villageExit.x === x && villageExit.y === y) {
+                    row += `\x1b[37m%\x1b[0m`
+                } else {
+                    row += `\x1b[32m${cell}\x1b[0m`
+                }
+
             }
 
+            //把這行儲存進去 frame，並記得結尾換行
+            frame += row + '\n'
         }
 
-        //把這行儲存進去 frame，並記得結尾換行
-        frame += row + '\n'
+    } else if (currentMap === 'forest') {
+        // 每次開始 render 前先重算一次
+        resetCameraVertex(forestMap);
+        const canvaMinX = cameraVertex.x;
+        const canvaMaxX = cameraVertex.x + viewWidth - 1;
+        const canvaMinY = cameraVertex.y;
+        const canvaMaxY = cameraVertex.y + viewHeight - 1;
+
+        for (let y = 0; y < forestMap.length; y++) {
+
+            if (y < canvaMinY || y > canvaMaxY) {
+                continue;
+            }
+
+            let row = ''
+
+            for (let x = 0; x < forestMap[y].length; x++) {
+
+                if (x < canvaMinX || x > canvaMaxX) {
+                    continue;
+                }
+
+                // 小優化，把常用的寫法儲存成變數
+                const cell = forestMap[y][x]
+
+                if (player.x === x && player.y === y) {
+                    row += `\x1b[33m@\x1b[0m`
+                } else if (trees.some(tree => tree.x === x && tree.y === y)) {
+                    row += `\x1b[36mT\x1b[0m`
+                } else if (herbs.some(herb => herb.x === x && herb.y === y)) {
+                    row += `\x1b[35mH\x1b[0m`
+                } else if (forestExit.x === x && forestExit.y === y) {
+                    row += `\x1b[37m%\x1b[0m`
+                } else {
+                    row += `\x1b[32m${cell}\x1b[0m`
+                }
+
+            }
+
+            //把這行儲存進去 frame，並記得結尾換行
+            frame += row + '\n'
+        }
     }
 
     // 一樣先印出來看看結果
@@ -162,9 +252,19 @@ export function startRPG(backToMenu) {
     // 接收到這些狀況的時候被觸發，'data' 指有新資料進來的時候
     function handleRPGInput(key) {
 
+        let map = [];
+        let exit;
+        if (currentMap === 'village') {
+            map = villageMap;
+            exit = villageExit;
+        } else if (currentMap === 'forest') {
+            map = forestMap;
+            exit = forestExit;
+        }
+
         // 如果按下字母 'q' 或是 'Q'，就回到選單
         if (key === 'q' || key === 'Q') {
-            process.stdout.write(`\x1b[${map.length}A`);
+            process.stdout.write(`\x1b[${viewHeight}A`);
             process.stdout.write('\x1b[J');
             backToMenu();
             return;
@@ -178,22 +278,55 @@ export function startRPG(backToMenu) {
 
         // 監聽器內四個方向換上這個邏輯
         if (key === '\x1b[A') {
-            movePlayer(0, -1)
+            movePlayer(map, 0, -1)
         }
         if (key === '\x1b[B') {
 
-            movePlayer(0, 1)
+            movePlayer(map, 0, 1)
         }
         if (key === '\x1b[C') {
 
-            movePlayer(1, 0)
+            movePlayer(map, 1, 0)
         }
         if (key === '\x1b[D') {
-            movePlayer(-1, 0)
+            movePlayer(map, -1, 0)
         }
 
         // 重新渲染
         render();
+
+        // player 是否在 % 上
+        if (player.x === exit.x && player.y === exit.y) {
+
+            // 是的話就清除畫面
+            process.stdout.write(`\x1b[${viewHeight}A`);
+            process.stdout.write('\x1b[J');
+
+            // 顯示地圖轉換中
+            process.stdout.write(`\x1b[32m地圖轉換中...\x1b[0m`);
+
+            setTimeout(() => {
+                process.stdout.write('\r'); // 游標回到該行行首
+                process.stdout.write('\x1b[J');
+                //轉換地圖
+                currentMap = currentMap === 'village' ? 'forest' : 'village';
+                // 這裡要重新計算 exit 和 map
+                if (currentMap === 'village') {
+                    map = villageMap;
+                    exit = villageExit;
+                } else if (currentMap === 'forest') {
+                    map = forestMap;
+                    exit = forestExit;
+                }
+                // 指定 player 位置到新的 exit
+                player.x = exit.x;
+                player.y = exit.y
+                process.stdout.write("\n".repeat(viewHeight));
+                render()
+            }, 1000)
+
+        }
+
     }
 
     process.stdin.on('data', handleRPGInput);
@@ -206,18 +339,29 @@ let player = { x: 1, y: 1 };
 // 村莊物件
 const village = createVillage();
 const npc = village.npc;
-const exit = village.exit;
-const walls = village.walls;
+const villageExit = village.exit;
+const villageWalls = village.walls;
+
+// 森林物件
+const forest = createForest();
+const trees = forest.trees;
+const herbs = forest.herbs;
+const forestExit = forest.exit;
+const forestWalls = forest.walls;
 
 //地圖
-const map = createMap(30, 9,walls);
+const villageMap = createMap(30, 9, villageWalls);
+const forestMap = createMap(30, 9, forestWalls);
+
+// 當前地圖
+let currentMap = 'village';
 
 //視窗大小
 let viewWidth = 10;
 let viewHeight = 8;
 
 // 相機頂點
-let cameraVertex = {x:0, y:0};
+let cameraVertex = { x: 0, y: 0 };
 
 
 
