@@ -120,7 +120,7 @@ function movePlayer(map, dx, dy) {
     if (currentMap === "forest" && isTree){
         return;
     }
-    
+
     if (map[nextY][nextX] === ' ') {
         player.x = nextX; // player 的座標移動到下一個位置
         player.y = nextY;
@@ -303,6 +303,7 @@ export function startRPG(backToMenu) {
         // player 是否在 % 上
         if (player.x === exit.x && player.y === exit.y) {
 
+            process.stdin.off('data', handleRPGInput);
             // 是的話就清除畫面
             process.stdout.write(`\x1b[${viewHeight}A`);
             process.stdout.write('\x1b[J');
@@ -328,6 +329,7 @@ export function startRPG(backToMenu) {
                 player.y = exit.y
                 process.stdout.write("\n".repeat(viewHeight));
                 render()
+                process.stdin.on('data', handleRPGInput);
             }, 1000)
 
         }
