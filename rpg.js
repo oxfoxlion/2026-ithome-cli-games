@@ -115,7 +115,12 @@ function movePlayer(map, dx, dy) {
     // 藉由傳入的 dx 和 dy 來定位下一個座標，這樣我們就知道要往哪邊走
     const nextX = player.x + dx; // 下一個 x  
     const nextY = player.y + dy; // 下一個 y 
+    const isTree = trees.some(tree => tree.x === nextX && tree.y === nextY);
 
+    if (currentMap === "forest" && isTree){
+        return;
+    }
+    
     if (map[nextY][nextX] === ' ') {
         player.x = nextX; // player 的座標移動到下一個位置
         player.y = nextY;
