@@ -142,6 +142,40 @@ function resetCameraVertex(map) {
     );
 }
 
+function openNPCTalk () {
+    const NPCX = npc.x;
+    const NPCY = npc.y;
+
+    const surroundingCells = [
+        { x: NPCX, y: NPCY },
+        { x: NPCX - 1, y: NPCY },
+        { x: NPCX + 1, y: NPCY },
+        { x: NPCX, y: NPCY - 1 },
+        { x: NPCX, y: NPCY + 1 },
+    ]
+
+    const isNext = surroundingCells.some(cell =>(cell.x === player.x && cell.y === player.y))
+    
+    if(isNext && npcStatus === 'notStarted') {
+        npcStatus = 'firstTalk';
+        // 是的話就清除畫面
+        process.stdout.write(`\x1b[${viewHeight}A`); // 上移游標
+        process.stdout.write('\x1b[J'); // 清除畫面
+        process.stdout.write("\n".repeat(firstTalk.length));//推出空間
+
+        // 顯示對話畫面
+
+        let frame = '';
+        for ( let i = 0; i < firstTalk.length; i++){
+            frame += firstTalk[i] + '\n'
+        }
+
+        process.stdout.write(`\x1b[${firstTalk.length}A`);//上移游標
+        process.stdout.write(frame);//印出
+        
+    }
+}
+
 //渲染畫面
 function render() {
 
@@ -186,6 +220,10 @@ function render() {
 
             }
 
+            if (y === canvaMinY){
+                row += ` 任務:${task}`;
+            }
+
             //把這行儲存進去 frame，並記得結尾換行
             frame += row + '\n'
         }
@@ -227,6 +265,10 @@ function render() {
                     row += `\x1b[32m${cell}\x1b[0m`
                 }
 
+            }
+
+            if (y === canvaMinY){
+                row += `任務:${task}`;
             }
 
             //把這行儲存進去 frame，並記得結尾換行
@@ -279,6 +321,11 @@ export function startRPG(backToMenu) {
         if (key === '\x03') {
             process.stdin.setRawMode(false);
             process.exit(130);
+        }
+
+        if (key === ' ') {
+            openNPCTalk ();
+            return;
         }
 
         // 監聽器內四個方向換上這個邏輯
@@ -342,6 +389,26 @@ export function startRPG(backToMenu) {
 
 // 玩家
 let player = { x: 1, y: 1 };
+
+// 任務與對話
+let task = 0;
+let npcStatus = 'notStarted'; // notStarted -> firstTalk -> SecondTalk -> completed
+const firstTalk = [
+    '村民：',
+    '年輕人，我們這裡很久沒有人來了。',
+    '',
+    '你：',
+    'A: 你看起來不舒服，需要幫忙嗎？',
+    'B: 看起來是這樣，那我走啦。'
+]
+const SecondTalk = [
+    '村民：',
+    '是的，我這是老毛病了，你願意到村子外面的森林幫我採點草藥嗎？',
+    '',
+    '你：',
+    'A: 當然可以。',
+    'B: 抱歉，我趕時間。'
+]
 
 // 村莊物件
 const village = createVillage();
