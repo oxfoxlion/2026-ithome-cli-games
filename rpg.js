@@ -98,7 +98,7 @@ function createForest() {
                 trees.push({ x: x, y: y })
             }
             if (forest[y][x] === 'H') {
-                herbs.push({ x: x, y: y })
+                herbs.push({ x: x, y: y, status: 'floor' })
             }
             if (forest[y][x] === '%') {
                 exit = { x, y }
@@ -195,9 +195,9 @@ function pushNPCStatus() {
         process.stdout.write(frame);//印出
 
 
-    }else if (npcStatus === "secondTalk") {
+    } else if (npcStatus === "secondTalk") {
         npcStatus = "completed";
-        task+= 1;
+        task += 1;
 
         // 清除畫面
         process.stdout.write(`\x1b[${secondTalk.length}A`); // 上移游標
@@ -206,6 +206,41 @@ function pushNPCStatus() {
         render();
 
     }
+}
+
+function pickUpHerbs() {
+
+    for (let i = 0; i < herbs.length; i++) {
+        const herbX = herbs[i].x;
+        const herbY = herbs[i].y;
+
+        const surroundingCells = [
+            { x: herbX, y: herbY },
+            { x: herbX - 1, y: herbY },
+            { x: herbX + 1, y: herbY },
+            { x: herbX, y: herbY - 1 },
+            { x: herbX, y: herbY + 1 },
+        ]
+
+        const isNext = surroundingCells.some(cell => (cell.x === player.x && cell.y === player.y))
+
+        if (isNext && herbs[i].status === 'floor') {
+            herbs[i].status = 'bag';
+            bag += 1;
+        }
+    }
+
+}
+
+function putDownHerbs () {
+    // 找到第一個 status 為 bag 的項目
+    let hasHerb = herbs.find(herb => herb.status === 'bag');
+
+    // 修改狀態、背包
+    hasHerb.x = player.x;
+    hasHerb.y = player.y;
+    hasHerb.status = 'floor';
+    bag -= 1;
 }
 
 //渲染畫面
@@ -258,6 +293,8 @@ function render() {
 
             if (y === canvaMinY) {
                 row += ` 任務:${task}`;
+            } else if (y === canvaMinY + 1) {
+                row += ` 背包:${bag}`;
             }
 
             //把這行儲存進去 frame，並記得結尾換行
@@ -293,7 +330,7 @@ function render() {
                     row += `\x1b[33m@\x1b[0m`
                 } else if (trees.some(tree => tree.x === x && tree.y === y)) {
                     row += `\x1b[36mT\x1b[0m`
-                } else if (herbs.some(herb => herb.x === x && herb.y === y)) {
+                } else if (herbs.some(herb => herb.x === x && herb.y === y && herb.status === 'floor')) {
                     row += `\x1b[35mH\x1b[0m`
                 } else if (forestExit.x === x && forestExit.y === y) {
                     row += `\x1b[37m%\x1b[0m`
@@ -304,7 +341,9 @@ function render() {
             }
 
             if (y === canvaMinY) {
-                row += `任務:${task}`;
+                row += ` 任務:${task}`;
+            } else if (y === canvaMinY + 1) {
+                row += ` 背包:${bag}`;
             }
 
             //把這行儲存進去 frame，並記得結尾換行
@@ -383,6 +422,14 @@ export function startRPG(backToMenu) {
             return;
         }
 
+        if ((key === 'f' || key === 'F')) {
+            pickUpHerbs();
+        }
+
+        if ((key === 'g' || key === 'G')) {
+            putDownHerbs();
+        }
+
         // 監聽器內四個方向換上這個邏輯
         if (key === '\x1b[A') {
             movePlayer(map, 0, -1)
@@ -447,6 +494,7 @@ let player = { x: 1, y: 1 };
 
 // 任務與對話
 let task = 0;
+let bag = 0;
 let npcStatus = 'notStarted'; // notStarted -> firstTalk -> secondTalk -> completed
 const firstTalk = [
     '村民：',
