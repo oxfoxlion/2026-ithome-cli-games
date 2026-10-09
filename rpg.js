@@ -117,7 +117,7 @@ function movePlayer(map, dx, dy) {
     const nextY = player.y + dy; // 下一個 y 
     const isTree = trees.some(tree => tree.x === nextX && tree.y === nextY);
 
-    if (currentMap === "forest" && isTree){
+    if (currentMap === "forest" && isTree) {
         return;
     }
 
@@ -142,7 +142,7 @@ function resetCameraVertex(map) {
     );
 }
 
-function openNPCTalk () {
+function openNPCTalk() {
     const NPCX = npc.x;
     const NPCY = npc.y;
 
@@ -154,9 +154,9 @@ function openNPCTalk () {
         { x: NPCX, y: NPCY + 1 },
     ]
 
-    const isNext = surroundingCells.some(cell =>(cell.x === player.x && cell.y === player.y))
-    
-    if(isNext && npcStatus === 'notStarted') {
+    const isNext = surroundingCells.some(cell => (cell.x === player.x && cell.y === player.y))
+
+    if (isNext && npcStatus === 'notStarted') {
         npcStatus = 'firstTalk';
         // 是的話就清除畫面
         process.stdout.write(`\x1b[${viewHeight}A`); // 上移游標
@@ -166,18 +166,54 @@ function openNPCTalk () {
         // 顯示對話畫面
 
         let frame = '';
-        for ( let i = 0; i < firstTalk.length; i++){
+        for (let i = 0; i < firstTalk.length; i++) {
             frame += firstTalk[i] + '\n'
         }
 
         process.stdout.write(`\x1b[${firstTalk.length}A`);//上移游標
         process.stdout.write(frame);//印出
-        
+
+    }
+}
+
+function pushNPCStatus() {
+    if (npcStatus === "firstTalk") {
+        npcStatus = "secondTalk";
+        // 清除畫面
+        process.stdout.write(`\x1b[${firstTalk.length}A`); // 上移游標
+        process.stdout.write('\x1b[J'); // 清除畫面
+        process.stdout.write("\n".repeat(secondTalk.length));//推出空間
+
+        // 顯示對話畫面
+
+        let frame = '';
+        for (let i = 0; i < secondTalk.length; i++) {
+            frame += secondTalk[i] + '\n'
+        }
+
+        process.stdout.write(`\x1b[${secondTalk.length}A`);//上移游標
+        process.stdout.write(frame);//印出
+
+
+    }else if (npcStatus === "secondTalk") {
+        npcStatus = "completed";
+        task+= 1;
+
+        // 清除畫面
+        process.stdout.write(`\x1b[${secondTalk.length}A`); // 上移游標
+        process.stdout.write('\x1b[J'); // 清除畫面
+        process.stdout.write('\n'.repeat(viewHeight));//推出空間
+        render();
+
     }
 }
 
 //渲染畫面
 function render() {
+
+    if (npcStatus === 'firstTalk' || npcStatus === 'secondTalk') {
+        return;
+    }
 
     //儲存整個畫面的字串
     let frame = ''
@@ -220,7 +256,7 @@ function render() {
 
             }
 
-            if (y === canvaMinY){
+            if (y === canvaMinY) {
                 row += ` 任務:${task}`;
             }
 
@@ -267,7 +303,7 @@ function render() {
 
             }
 
-            if (y === canvaMinY){
+            if (y === canvaMinY) {
                 row += `任務:${task}`;
             }
 
@@ -323,8 +359,27 @@ export function startRPG(backToMenu) {
             process.exit(130);
         }
 
+        // 按下空白鍵
         if (key === ' ') {
-            openNPCTalk ();
+            openNPCTalk();
+            return;
+        }
+
+        if ((key === 'a' || key === 'A') && (npcStatus === 'firstTalk' || npcStatus === 'secondTalk')) {
+            pushNPCStatus();
+            return;
+        }
+
+        // 按下 B 按鍵
+        if ((key === 'b' || key === 'B') && (npcStatus === 'firstTalk' || npcStatus === 'secondTalk')) {
+            npcStatus = 'notStarted';
+
+            // 按下 B 後回到遊戲畫面
+            process.stdout.write(`\x1b[${firstTalk.length}A`);
+            process.stdout.write('\x1b[J');
+            process.stdout.write('\n'.repeat(viewHeight));
+            render();
+
             return;
         }
 
@@ -392,7 +447,7 @@ let player = { x: 1, y: 1 };
 
 // 任務與對話
 let task = 0;
-let npcStatus = 'notStarted'; // notStarted -> firstTalk -> SecondTalk -> completed
+let npcStatus = 'notStarted'; // notStarted -> firstTalk -> secondTalk -> completed
 const firstTalk = [
     '村民：',
     '年輕人，我們這裡很久沒有人來了。',
@@ -401,7 +456,7 @@ const firstTalk = [
     'A: 你看起來不舒服，需要幫忙嗎？',
     'B: 看起來是這樣，那我走啦。'
 ]
-const SecondTalk = [
+const secondTalk = [
     '村民：',
     '是的，我這是老毛病了，你願意到村子外面的森林幫我採點草藥嗎？',
     '',
