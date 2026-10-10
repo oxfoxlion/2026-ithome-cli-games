@@ -182,6 +182,9 @@ function openNPCTalk() {
             npcStatus = 'thirdTalk';
 
             for (let i = 0; i < thirdTalk.length; i++) {
+                if(bag < 3 && i === 4){
+                    continue;
+                }
                 frame += thirdTalk[i] + '\n'
             }
 
@@ -225,7 +228,12 @@ function pushNPCStatus() {
         render();
     } else if (npcStatus === "thirdTalk") {
 
+        if (bag < 3){
+            return;
+        }
+
         npcStatus = "forthTalk";
+        bag -= 3 ;
 
         // 清除畫面
         process.stdout.write(`\x1b[${thirdTalk.length}A`); // 上移游標
@@ -291,7 +299,7 @@ function putDownHerbs() {
 //渲染畫面
 function render() {
 
-    if (npcStatus === 'firstTalk' || npcStatus === 'secondTalk') {
+    if (npcStatus === 'firstTalk' || npcStatus === 'secondTalk' || npcStatus === 'thirdTalk' || npcStatus === 'forthTalk') {
         return;
     }
 
