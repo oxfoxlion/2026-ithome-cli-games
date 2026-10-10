@@ -156,8 +156,8 @@ function openNPCTalk() {
 
     const isNext = surroundingCells.some(cell => (cell.x === player.x && cell.y === player.y))
 
-    if (isNext && npcStatus === 'notStarted') {
-        npcStatus = 'firstTalk';
+    if (isNext && (npcStatus === 'notStarted' || npcStatus === 'getTask')) {
+
         // 是的話就清除畫面
         process.stdout.write(`\x1b[${viewHeight}A`); // 上移游標
         process.stdout.write('\x1b[J'); // 清除畫面
@@ -166,14 +166,33 @@ function openNPCTalk() {
         // 顯示對話畫面
 
         let frame = '';
-        for (let i = 0; i < firstTalk.length; i++) {
-            frame += firstTalk[i] + '\n'
+
+        if (npcStatus === 'notStarted') {
+
+            npcStatus = 'firstTalk';
+
+            for (let i = 0; i < firstTalk.length; i++) {
+                frame += firstTalk[i] + '\n'
+            }
+
+            process.stdout.write(`\x1b[${firstTalk.length}A`);//上移游標
+
+        } else if (npcStatus === 'getTask') {
+
+            npcStatus = 'thirdTalk';
+
+            for (let i = 0; i < thirdTalk.length; i++) {
+                frame += thirdTalk[i] + '\n'
+            }
+
+            process.stdout.write(`\x1b[${thirdTalk.length}A`);//上移游標
+
         }
 
-        process.stdout.write(`\x1b[${firstTalk.length}A`);//上移游標
         process.stdout.write(frame);//印出
 
     }
+    
 }
 
 function pushNPCStatus() {
@@ -196,7 +215,7 @@ function pushNPCStatus() {
 
 
     } else if (npcStatus === "secondTalk") {
-        npcStatus = "completed";
+        npcStatus = "getTask";
         task += 1;
 
         // 清除畫面
@@ -204,7 +223,33 @@ function pushNPCStatus() {
         process.stdout.write('\x1b[J'); // 清除畫面
         process.stdout.write('\n'.repeat(viewHeight));//推出空間
         render();
+    } else if (npcStatus === "thirdTalk") {
 
+        npcStatus = "forthTalk";
+
+        // 清除畫面
+        process.stdout.write(`\x1b[${thirdTalk.length}A`); // 上移游標
+        process.stdout.write('\x1b[J'); // 清除畫面
+        process.stdout.write("\n".repeat(fourthTalk.length));//推出空間
+
+        // 顯示對話畫面
+
+        let frame = '';
+        for (let i = 0; i < fourthTalk.length; i++) {
+            frame += fourthTalk[i] + '\n'
+        }
+
+        process.stdout.write(`\x1b[${fourthTalk.length}A`);//上移游標
+        process.stdout.write(frame);//印出
+    } else if (npcStatus === "forthTalk") {
+        npcStatus = "complete";
+        task -=1;
+
+        // 清除畫面
+        process.stdout.write(`\x1b[${fourthTalk.length}A`); // 上移游標
+        process.stdout.write('\x1b[J'); // 清除畫面
+        process.stdout.write('\n'.repeat(viewHeight));//推出空間
+        render();
     }
 }
 
@@ -232,7 +277,7 @@ function pickUpHerbs() {
 
 }
 
-function putDownHerbs () {
+function putDownHerbs() {
     // 找到第一個 status 為 bag 的項目
     let hasHerb = herbs.find(herb => herb.status === 'bag');
 
@@ -404,13 +449,14 @@ export function startRPG(backToMenu) {
             return;
         }
 
-        if ((key === 'a' || key === 'A') && (npcStatus === 'firstTalk' || npcStatus === 'secondTalk')) {
+        // 按下 A 按鍵
+        if ((key === 'a' || key === 'A') && (npcStatus === 'firstTalk' || npcStatus === 'secondTalk' || npcStatus === 'thirdTalk' || npcStatus === 'forthTalk' )) {
             pushNPCStatus();
             return;
         }
 
         // 按下 B 按鍵
-        if ((key === 'b' || key === 'B') && (npcStatus === 'firstTalk' || npcStatus === 'secondTalk')) {
+        if ((key === 'b' || key === 'B') && (npcStatus === 'firstTalk' || npcStatus === 'secondTalk' || npcStatus === 'thirdTalk')) {
             npcStatus = 'notStarted';
 
             // 按下 B 後回到遊戲畫面
@@ -495,7 +541,7 @@ let player = { x: 1, y: 1 };
 // 任務與對話
 let task = 0;
 let bag = 0;
-let npcStatus = 'notStarted'; // notStarted -> firstTalk -> secondTalk -> completed
+let npcStatus = 'notStarted'; // notStarted -> firstTalk -> secondTalk -> getTask -> thirdTalk ->fourthTalk -> completed
 const firstTalk = [
     '村民：',
     '年輕人，我們這裡很久沒有人來了。',
@@ -512,6 +558,23 @@ const secondTalk = [
     'A: 當然可以。',
     'B: 抱歉，我趕時間。'
 ]
+const thirdTalk = [
+    '村民：',
+    '年輕人，你回來啦？狀況如何？',
+    '',
+    '你：',
+    'A: 我拿到 3 個草藥了。',
+    'B: 我還沒去。'
+]
+const fourthTalk = [
+    '村民：',
+    '太感謝你了，這是我自己熬煮的雞湯，你帶著路上喝吧。',
+    '',
+    '你：',
+    'A: 謝謝你。'
+]
+
+
 
 // 村莊物件
 const village = createVillage();
