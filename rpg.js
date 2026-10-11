@@ -182,7 +182,7 @@ function openNPCTalk() {
             npcStatus = 'thirdTalk';
 
             for (let i = 0; i < thirdTalk.length; i++) {
-                if(bag < 3 && i === 4){
+                if (bag < 3 && i === 4) {
                     continue;
                 }
                 frame += thirdTalk[i] + '\n'
@@ -195,7 +195,7 @@ function openNPCTalk() {
         process.stdout.write(frame);//印出
 
     }
-    
+
 }
 
 function pushNPCStatus() {
@@ -228,12 +228,12 @@ function pushNPCStatus() {
         render();
     } else if (npcStatus === "thirdTalk") {
 
-        if (bag < 3){
+        if (bag.content.herbs.num < 3) {
             return;
         }
 
         npcStatus = "forthTalk";
-        bag -= 3 ;
+        bag.content.herbs.num -= 3;
 
         // 清除畫面
         process.stdout.write(`\x1b[${thirdTalk.length}A`); // 上移游標
@@ -251,7 +251,8 @@ function pushNPCStatus() {
         process.stdout.write(frame);//印出
     } else if (npcStatus === "forthTalk") {
         npcStatus = "complete";
-        task -=1;
+        task -= 1;
+        bag.content.chickenSoup.num += 1;
 
         // 清除畫面
         process.stdout.write(`\x1b[${fourthTalk.length}A`); // 上移游標
@@ -279,7 +280,7 @@ function pickUpHerbs() {
 
         if (isNext && herbs[i].status === 'floor') {
             herbs[i].status = 'bag';
-            bag += 1;
+            bag.content.herbs.num += 1;
         }
     }
 
@@ -293,7 +294,39 @@ function putDownHerbs() {
     hasHerb.x = player.x;
     hasHerb.y = player.y;
     hasHerb.status = 'floor';
-    bag -= 1;
+    bag.content.herbs.num -= 1;
+}
+
+function showBag() {
+    // 計算背包畫面需要多少空間
+    const bagHeight = 2 + Object.keys(bag.content).length;
+
+    if (bag.status === 'close') {
+        bag.status = 'open'
+        // 清除畫面
+        process.stdout.write(`\x1b[${viewHeight}A`); // 上移游標
+        process.stdout.write('\x1b[J'); // 清除畫面
+        const itemLines = Object.values(bag.content)
+            .map(item => `${item.name} ${item.num}`);
+
+        const frame = [
+            '背包',
+            '--------',
+            ...itemLines,
+        ].join('\n') + '\n';
+
+        process.stdout.write("\n".repeat(bagHeight));//推出空間
+        process.stdout.write(`\x1b[${bagHeight}A`); //上移游標
+        process.stdout.write(frame);//印出
+    } else if (bag.status === 'open') {
+        bag.status = 'close';
+        // 清除畫面
+        process.stdout.write(`\x1b[${bagHeight}A`); // 上移游標
+        process.stdout.write('\x1b[J'); // 清除畫面
+        process.stdout.write('\n'.repeat(viewHeight));
+        render();
+    }
+
 }
 
 //渲染畫面
@@ -347,7 +380,9 @@ function render() {
             if (y === canvaMinY) {
                 row += ` 任務:${task}`;
             } else if (y === canvaMinY + 1) {
-                row += ` 背包:${bag}`;
+                const bagTotal = Object.values(bag.content)
+                    .reduce((total, item) => total + item.num, 0); 
+                row += ` 背包:${ bagTotal}`;
             }
 
             //把這行儲存進去 frame，並記得結尾換行
@@ -396,7 +431,9 @@ function render() {
             if (y === canvaMinY) {
                 row += ` 任務:${task}`;
             } else if (y === canvaMinY + 1) {
-                row += ` 背包:${bag}`;
+                const bagTotal = Object.values(bag.content)
+                    .reduce((total, item) => total + item.num, 0); 
+                row += ` 背包:${ bagTotal}`;
             }
 
             //把這行儲存進去 frame，並記得結尾換行
@@ -458,7 +495,7 @@ export function startRPG(backToMenu) {
         }
 
         // 按下 A 按鍵
-        if ((key === 'a' || key === 'A') && (npcStatus === 'firstTalk' || npcStatus === 'secondTalk' || npcStatus === 'thirdTalk' || npcStatus === 'forthTalk' )) {
+        if ((key === 'a' || key === 'A') && (npcStatus === 'firstTalk' || npcStatus === 'secondTalk' || npcStatus === 'thirdTalk' || npcStatus === 'forthTalk')) {
             pushNPCStatus();
             return;
         }
@@ -482,6 +519,11 @@ export function startRPG(backToMenu) {
 
         if ((key === 'g' || key === 'G')) {
             putDownHerbs();
+        }
+
+        if ((key === 'o' || key === 'O')) {
+            showBag();
+            return;
         }
 
         // 監聽器內四個方向換上這個邏輯
@@ -548,7 +590,19 @@ let player = { x: 1, y: 1 };
 
 // 任務與對話
 let task = 0;
-let bag = 0;
+let bag = {
+    status: 'close', //open close
+    content: {
+        herbs: {
+            name: "草藥",
+            num: 0,
+        },
+        chickenSoup: {
+            name: '雞湯',
+            num: 0,
+        }
+    }
+};
 let npcStatus = 'notStarted'; // notStarted -> firstTalk -> secondTalk -> getTask -> thirdTalk ->fourthTalk -> completed
 const firstTalk = [
     '村民：',
@@ -581,7 +635,6 @@ const fourthTalk = [
     '你：',
     'A: 謝謝你。'
 ]
-
 
 
 // 村莊物件
